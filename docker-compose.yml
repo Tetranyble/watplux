@@ -1,0 +1,41 @@
+# Local development services only.
+#
+# Scope note: Phase 1 asks for a "Docker development environment," which
+# this provides — a real MySQL to develop and test against, matching
+# docs/ARCHITECTURE.md's MySQL-as-primary-database decision. The
+# containerized *application* image (multi-stage Dockerfile, production
+# deployment) belongs to Phase 17 (Deployment Architecture) and is
+# intentionally not built here.
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: watplux
+      MYSQL_USER: watplux
+      MYSQL_PASSWORD: watplux
+      MYSQL_ROOT_PASSWORD: watplux_root
+    ports:
+      # If port 3306 is already bound by a local MySQL install, remap the
+      # host side (e.g. "3307:3306") and update DATABASE_URL's port to match.
+      - "3306:3306"
+    volumes:
+      - watplux_mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-pwatplux_root",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  watplux_mysql_data:

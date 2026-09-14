@@ -1,0 +1,1066 @@
+// Prisma schema — Phase 2B implementation of the approved Phase 2A design.
+//
+// Source of truth: docs/DATABASE_DESIGN.md (table-by-table spec) and
+// docs/ARCHITECTURE.md (system behavior). This file is a direct translation,
+// not a redesign — see docs/DATABASE_DESIGN.md §24 for the naming/enum/JSON/
+// Decimal/migration conventions this schema follows.
+//
+// Built and migrated incrementally, domain by domain, per the approved
+// sequence: Identity -> Catalog -> Inventory -> Commerce -> Payments ->
+// Services/Reviews/Coupons -> Administration. Each domain's models are
+// grouped and commented below in that order, matching migration history.
+//
+// MySQL features Prisma cannot express natively (generated columns,
+// multi-column CHECK constraints, and two forward-reference FKs required by
+// the approved domain migration order) are hand-added via edited migration
+// SQL — each is called out with a comment at the Prisma field/model that
+// participates, plus full detail in the Phase 2B implementation report.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// IDENTITY DOMAIN — Better Auth + application RBAC
+// Better Auth owns credential accounts, sessions and verification records.
+// Application-specific roles/permissions remain separate and continue to
+// authorize business use-cases. Existing numeric User ids are preserved so
+// every commerce FK remains stable; Better Auth is configured to let MySQL
+// generate User.id while its own auxiliary records use UUID strings.
+// ============================================================================
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id            BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  name          String     @db.VarChar(255)
+  email         String     @unique @db.VarChar(255)
+  emailVerified Boolean    @default(false) @map("email_verified")
+  image         String?    @db.VarChar(500)
+  phone         String?    @db.VarChar(32)
+  status        UserStatus @default(ACTIVE)
+  deletedAt     DateTime?  @map("deleted_at")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  sessions                  Session[]
+  accounts                  Account[]
+  userRoles                 UserRole[]           @relation("UserRoleUser")
+  roleAssignmentsMade       UserRole[]           @relation("UserRoleAssignedBy")
+  inventoryMovementsCreated InventoryMovement[]
+  addresses                 Address[]
+  carts                     Cart[]
+  orders                    Order[]
+  orderStatusEventsActed    OrderStatusHistory[]
+  couponRedemptions         CouponRedemption[]
+  refundsRequested          Refund[]
+  serviceRequestsMade       ServiceRequest[]     @relation("ServiceRequestRequester")
+  serviceRequestsAssigned   ServiceRequest[]     @relation("ServiceRequestAssignee")
+  reviews                   Review[]
+  auditLogsActed            AuditLog[]
+  settingsUpdated           Settings[]           @relation("SettingsUpdatedBy")
+  settingEntriesUpdated     SettingEntry[]       @relation("SettingEntriesUpdatedBy")
+  mediaAssetsCreated        MediaAsset[]         @relation("MediaAssetCreatedBy")
+
+  @@map("users")
+}
+
+/// Better Auth core session model. The raw session token is intentionally
+/// managed by Better Auth; application code never reads it from Prisma.
+model Session {
+  id        String   @id @db.VarChar(64)
+  userId    BigInt   @map("user_id") @db.UnsignedBigInt
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @map("expires_at")
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent") @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt], map: "idx_sessions_user_expiry")
+  @@map("sessions")
+}
+
+/// Authentication methods linked to a user. Credential passwords live here,
+/// not on User, following Better Auth's core model.
+model Account {
+  id                    String    @id @db.VarChar(64)
+  userId                BigInt    @map("user_id") @db.UnsignedBigInt
+  accountId             String    @map("account_id") @db.VarChar(255)
+  providerId            String    @map("provider_id") @db.VarChar(100)
+  accessToken           String?   @map("access_token") @db.Text
+  refreshToken          String?   @map("refresh_token") @db.Text
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  scope                 String?   @db.Text
+  idToken               String?   @map("id_token") @db.Text
+  password              String?   @db.VarChar(255)
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId], map: "uq_accounts_provider_account")
+  @@index([userId], map: "idx_accounts_user")
+  @@map("accounts")
+}
+
+/// Better Auth verification store for email verification, password reset and
+/// future OTP/magic-link plugins. Better Auth controls lifecycle and cleanup.
+model Verification {
+  id         String   @id @db.VarChar(64)
+  identifier String   @db.VarChar(255)
+  value      String   @db.Text
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([identifier], map: "idx_verification_identifier")
+  @@map("verifications")
+}
+
+model Role {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  key         String  @unique @db.VarChar(100)
+  description String? @db.VarChar(255)
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId     BigInt   @map("user_id") @db.UnsignedBigInt
+  roleId     BigInt   @map("role_id") @db.UnsignedBigInt
+  assignedBy BigInt?  @map("assigned_by") @db.UnsignedBigInt
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  user           User  @relation("UserRoleUser", fields: [userId], references: [id], onDelete: Cascade)
+  role           Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("UserRoleAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       BigInt @map("role_id") @db.UnsignedBigInt
+  permissionId BigInt @map("permission_id") @db.UnsignedBigInt
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ============================================================================
+// CATALOG DOMAIN — docs/DATABASE_DESIGN.md §2, §3, §4
+// Option A (approved): every product has at least one ProductVariant; all
+// price/SKU/stock lives on the variant, never on Product. "At least one
+// variant, exactly one default" is a use-case-transaction guarantee (Phase 4),
+// NOT a database one. The database enforces only "at most one default variant
+// per product" — via defaultVariantKey below, a generated column Prisma
+// cannot express natively (hand-edited in this domain's migration; see the
+// Phase 2B report).
+// ============================================================================
+
+model Brand {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String   @db.VarChar(150)
+  slug        String   @unique @db.VarChar(150)
+  logoUrl     String?  @map("logo_url") @db.VarChar(500)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("brands")
+}
+
+model Category {
+  id             BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  parentId       BigInt?  @map("parent_id") @db.UnsignedBigInt
+  name           String   @db.VarChar(150)
+  slug           String   @unique @db.VarChar(150)
+  description    String?  @db.Text
+  imageUrl       String?  @map("image_url") @db.VarChar(500)
+  sortOrder      Int      @default(0) @map("sort_order") @db.UnsignedSmallInt
+  isActive       Boolean  @default(true) @map("is_active")
+  seoTitle       String?  @map("seo_title") @db.VarChar(255)
+  seoDescription String?  @map("seo_description") @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@index([parentId, sortOrder], map: "idx_categories_tree")
+  @@map("categories")
+}
+
+enum UnitOfMeasure {
+  EACH
+  METER
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model Product {
+  id               BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  brandId          BigInt?       @map("brand_id") @db.UnsignedBigInt
+  categoryId       BigInt        @map("category_id") @db.UnsignedBigInt
+  name             String        @db.VarChar(255)
+  slug             String        @unique @db.VarChar(255)
+  shortDescription String?       @map("short_description") @db.VarChar(500)
+  description      String?       @db.Text
+  unitOfMeasure    UnitOfMeasure @default(EACH) @map("unit_of_measure")
+  status           ProductStatus
+  isFeatured       Boolean       @default(false) @map("is_featured")
+  warrantyMonths   Int?          @map("warranty_months") @db.UnsignedSmallInt
+  seoTitle         String?       @map("seo_title") @db.VarChar(255)
+  seoDescription   String?       @map("seo_description") @db.VarChar(500)
+  deletedAt        DateTime?     @map("deleted_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  brand          Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  category       Category               @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants       ProductVariant[]
+  images         ProductImage[]
+  specifications ProductSpecification[]
+  orderItems     OrderItem[]
+  reviews        Review[]
+
+  @@index([categoryId, status], map: "idx_products_category_status")
+  @@index([status, isFeatured, createdAt], map: "idx_products_featured")
+  @@index([brandId], map: "idx_products_brand")
+  @@map("products")
+}
+
+enum ProductVariantStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ElectricalPhase {
+  SINGLE
+  THREE
+}
+
+model ProductVariant {
+  id           BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  productId    BigInt               @map("product_id") @db.UnsignedBigInt
+  sku          String               @unique @db.VarChar(64)
+  variantLabel String?              @map("variant_label") @db.VarChar(255)
+  optionValues Json?                @map("option_values")
+  isDefault    Boolean              @default(false) @map("is_default")
+  status       ProductVariantStatus
+  sortOrder    Int                  @default(0) @map("sort_order") @db.UnsignedSmallInt
+
+  // Pricing (docs/DATABASE_DESIGN.md §4) — money stays integer minor units.
+  priceMinor          Int    @map("price_minor") @db.UnsignedInt
+  compareAtPriceMinor Int?   @map("compare_at_price_minor") @db.UnsignedInt
+  currency            String @default("NGN") @db.Char(3)
+
+  // Filterable technical facets (docs/DATABASE_DESIGN.md §3) — 8 columns,
+  // each justified by an actual filter/compatibility query.
+  powerRatingW      Int?             @map("power_rating_w") @db.UnsignedSmallInt
+  voltageV          Int?             @map("voltage_v") @db.UnsignedSmallInt
+  capacityWh        Int?             @map("capacity_wh") @db.UnsignedInt
+  ratedCurrentA     Int?             @map("rated_current_a") @db.UnsignedSmallInt
+  phase             ElectricalPhase?
+  efficiencyPercent Decimal?         @map("efficiency_percent") @db.Decimal(5, 2)
+  mpptMinV          Int?             @map("mppt_min_v") @db.UnsignedSmallInt
+  mpptMaxV          Int?             @map("mppt_max_v") @db.UnsignedSmallInt
+
+  // Logistics facts (docs/DATABASE_DESIGN.md §3) — 4 columns, used in
+  // shipping-fee calculation, not filtering.
+  weightKg Decimal? @map("weight_kg") @db.Decimal(8, 3)
+  lengthCm Decimal? @map("length_cm") @db.Decimal(8, 2)
+  widthCm  Decimal? @map("width_cm") @db.Decimal(8, 2)
+  heightCm Decimal? @map("height_cm") @db.Decimal(8, 2)
+
+  // Generated column (MySQL-only, hand-edited in migration): NULL unless
+  // isDefault=true, in which case it equals productId. The @unique below
+  // becomes the "at most one default variant per product" guarantee.
+  // See docs/DATABASE_DESIGN.md §2 — this is deliberately NOT "exactly one";
+  // that half of the invariant is an application-transaction guarantee.
+  defaultVariantKey BigInt? @unique(map: "uq_at_most_one_default_variant_per_product") @map("default_variant_key") @db.UnsignedBigInt
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // onUpdate: Restrict is required (not the Prisma default) — MySQL forbids
+  // ON UPDATE CASCADE/SET NULL on a column a STORED generated column reads,
+  // and productId feeds defaultVariantKey above.
+  product       Product        @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  inventoryItem InventoryItem?
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+
+  @@index([productId, status], map: "idx_product_variants_product_status")
+  @@index([isDefault, status, priceMinor, productId], map: "idx_variants_default_price_product")
+  @@map("product_variants")
+}
+
+model ProductImage {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  productId BigInt   @map("product_id") @db.UnsignedBigInt
+  url       String   @db.VarChar(500)
+  altText   String?  @map("alt_text") @db.VarChar(255)
+  width     Int?     @db.UnsignedSmallInt
+  height    Int?     @db.UnsignedSmallInt
+  isPrimary Boolean  @default(false) @map("is_primary")
+  sortOrder Int      @default(0) @map("sort_order") @db.UnsignedSmallInt
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, sortOrder], map: "idx_product_images_order")
+  @@map("product_images")
+}
+
+model ProductSpecification {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  productId  BigInt   @map("product_id") @db.UnsignedBigInt
+  specKey    String   @map("spec_key") @db.VarChar(100)
+  specValue  String   @map("spec_value") @db.VarChar(500)
+  unit       String?  @db.VarChar(20)
+  groupLabel String?  @map("group_label") @db.VarChar(100)
+  sortOrder  Int      @default(0) @map("sort_order") @db.UnsignedSmallInt
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, specKey], map: "uq_product_specifications_key")
+  @@map("product_specifications")
+}
+
+// ============================================================================
+// INVENTORY DOMAIN — docs/DATABASE_DESIGN.md §5
+//
+// inventory_movements.order_item_id is a FORWARD REFERENCE: order_items
+// belongs to the Commerce domain (migrated after Inventory per the approved
+// sequence). Declared here as a plain scalar column with an index but NO
+// relation/FK yet; the relation + real FK constraint (ON DELETE RESTRICT) is
+// added once OrderItem exists, in the Commerce migration — an ALTER TABLE
+// ADD CONSTRAINT there, not a redesign. Same pattern as the approved
+// orders <-> payment_attempts circular reference (docs, §13 of Phase 2B brief).
+// ============================================================================
+
+model InventoryItem {
+  id                BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  productVariantId  BigInt   @unique @map("product_variant_id") @db.UnsignedBigInt
+  quantityOnHand    Decimal  @default(0) @map("quantity_on_hand") @db.Decimal(12, 3)
+  quantityReserved  Decimal  @default(0) @map("quantity_reserved") @db.Decimal(12, 3)
+  // Generated column (hand-edited in migration): quantityOnHand - quantityReserved.
+  // Never independently writable — invariant 2, docs/DATABASE_DESIGN.md §5.
+  quantityAvailable Decimal? @map("quantity_available") @db.Decimal(12, 3)
+  lowStockThreshold Decimal? @map("low_stock_threshold") @db.Decimal(12, 3)
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  productVariant ProductVariant      @relation(fields: [productVariantId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  movements      InventoryMovement[]
+
+  @@index([quantityAvailable, productVariantId], map: "idx_inventory_available_variant")
+  @@map("inventory_items")
+}
+
+enum InventoryMovementType {
+  RESTOCK
+  RESERVE
+  RELEASE
+  SALE
+  RETURN
+  ADJUSTMENT
+}
+
+enum InventoryMovementReferenceType {
+  MANUAL
+  PURCHASE_ORDER
+}
+
+model InventoryMovement {
+  id              BigInt                          @id @default(autoincrement()) @db.UnsignedBigInt
+  inventoryItemId BigInt                          @map("inventory_item_id") @db.UnsignedBigInt
+  type            InventoryMovementType
+  onHandDelta     Decimal                         @default(0) @map("on_hand_delta") @db.Decimal(12, 3)
+  reservedDelta   Decimal                         @default(0) @map("reserved_delta") @db.Decimal(12, 3)
+  // Forward reference to order_items (Commerce domain) — see model-level note above.
+  orderItemId     BigInt?                         @map("order_item_id") @db.UnsignedBigInt
+  referenceType   InventoryMovementReferenceType? @map("reference_type")
+  referenceId     BigInt?                         @map("reference_id") @db.UnsignedBigInt
+  note            String?                         @db.Text
+  createdBy       BigInt?                         @map("created_by") @db.UnsignedBigInt
+  createdAt       DateTime                        @default(now()) @map("created_at")
+
+  // Generated column (hand-edited in migration): CONCAT(type, '-', order_item_id)
+  // for RESERVE/RELEASE/SALE only, else NULL. Backs the unique index that
+  // guarantees "at most one RESERVE/RELEASE/SALE per order item" —
+  // docs/DATABASE_DESIGN.md §5, invariant 8.
+  orderItemMovementDedupKey String? @unique(map: "uq_one_reserve_release_sale_per_order_item") @map("order_item_movement_dedup_key") @db.VarChar(80)
+
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  createdByUser User?         @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  // Deferred FK, added in this domain now that OrderItem exists (forward
+  // reference from the Inventory migration — see the note on this model
+  // above). onUpdate: Restrict required: orderItemId feeds this table's own
+  // generated orderItemMovementDedupKey column.
+  orderItem     OrderItem?    @relation(fields: [orderItemId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([inventoryItemId, createdAt], map: "idx_inventory_movements_item_history")
+  @@index([orderItemId], map: "idx_inventory_movements_order_item")
+  @@index([referenceType, referenceId], map: "idx_inventory_movements_reference")
+  @@map("inventory_movements")
+}
+
+// ============================================================================
+// COMMERCE DOMAIN — docs/DATABASE_DESIGN.md §6, §7, §10, §13
+// ============================================================================
+
+model Address {
+  id           BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId       BigInt   @map("user_id") @db.UnsignedBigInt
+  label        String?  @db.VarChar(50)
+  fullName     String   @map("full_name") @db.VarChar(255)
+  phone        String   @db.VarChar(32)
+  addressLine1 String   @map("address_line1") @db.VarChar(255)
+  addressLine2 String?  @map("address_line2") @db.VarChar(255)
+  city         String   @db.VarChar(100)
+  state        String   @db.VarChar(100)
+  country      String   @db.VarChar(100)
+  postalCode   String?  @map("postal_code") @db.VarChar(20)
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Generated column (hand-edited in migration): "at most one default
+  // address per user" — same technique as product_variants.is_default.
+  defaultAddressKey BigInt? @unique(map: "uq_one_default_address_per_user") @map("default_address_key") @db.UnsignedBigInt
+
+  // DEVIATION FROM docs/DATABASE_DESIGN.md §10 (documented, not silent —
+  // see Phase 2B report): the design specifies ON DELETE CASCADE here, but
+  // MySQL (error 1215) refuses ANY foreign key whose ON DELETE action is
+  // CASCADE/SET NULL/SET DEFAULT on a column that feeds a STORED generated
+  // column in the same table — userId feeds defaultAddressKey above. The
+  // generated-column uniqueness guarantee is the higher-priority, explicitly
+  // "MUST be preserved" requirement, so this FK is RESTRICT instead.
+  // Consequence: hard-deleting a user with saved addresses requires the
+  // application to delete their addresses first — a narrow-impact tradeoff,
+  // since `users` uses soft delete (deletedAt) as its normal path anyway.
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@map("addresses")
+}
+
+enum CartStatus {
+  ACTIVE
+  CONVERTED
+  ABANDONED
+}
+
+model Cart {
+  id             BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  userId         BigInt?    @map("user_id") @db.UnsignedBigInt
+  guestTokenHash String?    @map("guest_token_hash") @db.Char(64)
+  status         CartStatus @default(ACTIVE)
+  expiresAt      DateTime?  @map("expires_at")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  // Generated columns (hand-edited in migration): NULL unless status='ACTIVE'.
+  // Back "one ACTIVE cart per user" / "one ACTIVE cart per guest token" —
+  // NOT plain UNIQUE(userId)/UNIQUE(guestTokenHash), which would forbid more
+  // than one cart row per identity ever, across all history. See
+  // docs/DATABASE_DESIGN.md §6 revision note.
+  activeCartUserKey  BigInt? @unique(map: "uq_one_active_cart_per_user") @map("active_cart_user_key") @db.UnsignedBigInt
+  activeCartGuestKey String? @unique(map: "uq_one_active_cart_per_guest_token") @map("active_cart_guest_key") @db.Char(64)
+
+  // DEVIATION FROM docs/DATABASE_DESIGN.md §6 (documented, not silent — same
+  // MySQL 1215 conflict as Address.user above: userId feeds
+  // activeCartUserKey). RESTRICT instead of the documented CASCADE.
+  // Consequence: hard-deleting a user with an active cart requires the
+  // application to delete/convert the cart first.
+  user  User?      @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id                 BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  cartId             BigInt   @map("cart_id") @db.UnsignedBigInt
+  productVariantId   BigInt   @map("product_variant_id") @db.UnsignedBigInt
+  quantity           Decimal  @db.Decimal(12, 3)
+  priceSnapshotMinor Int      @map("price_snapshot_minor") @db.UnsignedInt
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productVariantId], map: "uq_cart_items_cart_variant")
+  @@map("cart_items")
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROCESSING
+  READY_FOR_DISPATCH
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id          BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  orderNumber String      @unique @map("order_number") @db.VarChar(30)
+  userId      BigInt?     @map("user_id") @db.UnsignedBigInt
+  guestEmail  String?     @map("guest_email") @db.VarChar(255)
+  guestPhone  String?     @map("guest_phone") @db.VarChar(32)
+  status      OrderStatus
+
+  // Circular reference, now closed (Payments domain migration): was a plain
+  // scalar + unique index only through the Commerce migration (PaymentAttempt
+  // didn't exist yet); the relation + real FK (ON DELETE RESTRICT) are added
+  // here as an ALTER TABLE ADD CONSTRAINT, not a redesign. Set at most once
+  // by a conditional UPDATE at the application layer —
+  // docs/ARCHITECTURE.md §6.5 / docs/DATABASE_DESIGN.md §7.
+  authoritativePaymentAttemptId BigInt? @unique(map: "uq_orders_authoritative_payment_attempt") @map("authoritative_payment_attempt_id") @db.UnsignedBigInt
+
+  subtotalMinor    Int      @map("subtotal_minor") @db.UnsignedInt
+  discountMinor    Int      @default(0) @map("discount_minor") @db.UnsignedInt
+  deliveryFeeMinor Int      @default(0) @map("delivery_fee_minor") @db.UnsignedInt
+  taxMinor         Int      @default(0) @map("tax_minor") @db.UnsignedInt
+  totalMinor       Int      @map("total_minor") @db.UnsignedInt
+  currency         String   @default("NGN") @db.Char(3)
+  customerNote     String?  @map("customer_note") @db.Text
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user                        User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items                       OrderItem[]
+  addresses                   OrderAddress[]
+  statusHistory               OrderStatusHistory[]
+  couponRedemption            CouponRedemption?
+  paymentAttempts             PaymentAttempt[]     @relation("OrderPaymentAttempts")
+  authoritativePaymentAttempt PaymentAttempt?      @relation("OrderAuthoritativePaymentAttempt", fields: [authoritativePaymentAttemptId], references: [id], onDelete: Restrict)
+  refunds                     Refund[]
+
+  @@index([userId, createdAt], map: "idx_orders_user_created")
+  @@index([status, createdAt], map: "idx_orders_status_created")
+  @@map("orders")
+}
+
+model OrderItem {
+  id                   BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  orderId              BigInt   @map("order_id") @db.UnsignedBigInt
+  productId            BigInt?  @map("product_id") @db.UnsignedBigInt
+  productVariantId     BigInt?  @map("product_variant_id") @db.UnsignedBigInt
+  productNameSnapshot  String   @map("product_name_snapshot") @db.VarChar(255)
+  skuSnapshot          String   @map("sku_snapshot") @db.VarChar(64)
+  variantLabelSnapshot String?  @map("variant_label_snapshot") @db.VarChar(255)
+  unitPriceMinor       Int      @map("unit_price_minor") @db.UnsignedInt
+  quantity             Decimal  @db.Decimal(12, 3)
+  discountMinor        Int      @default(0) @map("discount_minor") @db.UnsignedInt
+  taxMinor             Int      @default(0) @map("tax_minor") @db.UnsignedInt
+  lineTotalMinor       Int      @map("line_total_minor") @db.UnsignedInt
+  createdAt            DateTime @default(now()) @map("created_at")
+
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  // Informational FKs only (docs/DATABASE_DESIGN.md §7) — snapshot fields
+  // above are the historical record; these pointers may go null.
+  product            Product?            @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productVariant     ProductVariant?     @relation(fields: [productVariantId], references: [id], onDelete: SetNull)
+  inventoryMovements InventoryMovement[]
+  reviews            Review[]
+
+  @@unique([orderId, productVariantId], map: "uq_one_line_per_variant_per_order")
+  @@map("order_items")
+}
+
+enum OrderAddressType {
+  SHIPPING
+  BILLING
+}
+
+model OrderAddress {
+  id            BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  orderId       BigInt           @map("order_id") @db.UnsignedBigInt
+  type          OrderAddressType
+  fullName      String           @map("full_name") @db.VarChar(255)
+  phone         String           @db.VarChar(32)
+  addressLine1  String           @map("address_line1") @db.VarChar(255)
+  addressLine2  String?          @map("address_line2") @db.VarChar(255)
+  city          String           @db.VarChar(100)
+  state         String           @db.VarChar(100)
+  country       String           @default("NG") @db.Char(2)
+  postalCode    String?          @map("postal_code") @db.VarChar(20)
+  deliveryNotes String?          @map("delivery_notes") @db.Text
+  createdAt     DateTime         @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, type], map: "uq_order_addresses_order_type")
+  @@map("order_addresses")
+}
+
+enum OrderStatusHistoryActorType {
+  SYSTEM
+  ADMIN
+  WEBHOOK
+}
+
+model OrderStatusHistory {
+  id         BigInt                      @id @default(autoincrement()) @db.UnsignedBigInt
+  orderId    BigInt                      @map("order_id") @db.UnsignedBigInt
+  fromStatus String                      @map("from_status") @db.VarChar(30)
+  toStatus   String                      @map("to_status") @db.VarChar(30)
+  actorType  OrderStatusHistoryActorType @map("actor_type")
+  actorId    BigInt?                     @map("actor_id") @db.UnsignedBigInt
+  note       String?                     @db.VarChar(500)
+  createdAt  DateTime                    @default(now()) @map("created_at")
+
+  order     Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actorUser User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt], map: "idx_order_status_history_order")
+  @@map("order_status_history")
+}
+
+enum CouponType {
+  FLAT
+  PERCENTAGE
+}
+
+model Coupon {
+  id                    BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  code                  String     @unique @db.VarChar(50)
+  type                  CouponType
+  valueMinor            Int?       @map("value_minor") @db.UnsignedInt
+  percentage            Decimal?   @db.Decimal(5, 2)
+  maxDiscountMinor      Int?       @map("max_discount_minor") @db.UnsignedInt
+  minOrderAmountMinor   Int?       @map("min_order_amount_minor") @db.UnsignedInt
+  usageLimit            Int?       @map("usage_limit") @db.UnsignedInt
+  usageLimitPerCustomer Int?       @map("usage_limit_per_customer") @db.UnsignedSmallInt
+  startsAt              DateTime?  @map("starts_at")
+  expiresAt             DateTime?  @map("expires_at")
+  isActive              Boolean    @default(true) @map("is_active")
+  createdAt             DateTime   @default(now()) @map("created_at")
+  updatedAt             DateTime   @updatedAt @map("updated_at")
+
+  redemptions CouponRedemption[]
+
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id                   BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  couponId             BigInt   @map("coupon_id") @db.UnsignedBigInt
+  orderId              BigInt   @unique @map("order_id") @db.UnsignedBigInt
+  userId               BigInt?  @map("user_id") @db.UnsignedBigInt
+  discountAppliedMinor Int      @map("discount_applied_minor") @db.UnsignedInt
+  redeemedAt           DateTime @default(now()) @map("redeemed_at")
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("coupon_redemptions")
+}
+
+// ============================================================================
+// PAYMENTS DOMAIN — docs/DATABASE_DESIGN.md §8, §9
+//
+// Closes the approved circular reference: Order.authoritativePaymentAttemptId
+// (declared as a plain scalar + unique index in the Commerce migration) gets
+// its real relation + FK here, now that PaymentAttempt exists. This is an
+// ALTER TABLE ADD CONSTRAINT in this migration, not a redesign — see
+// docs/DATABASE_DESIGN.md §13 discussion / Phase 2B report §13.
+// ============================================================================
+
+enum PaymentAttemptStatus {
+  INITIATED
+  PENDING
+  SUCCESS
+  FAILED
+  ABANDONED
+  INITIALIZATION_FAILED
+}
+
+model PaymentAttempt {
+  id                BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  orderId           BigInt               @map("order_id") @db.UnsignedBigInt
+  paystackReference String               @unique @map("paystack_reference") @db.VarChar(100)
+  amountMinor       Int                  @map("amount_minor") @db.UnsignedInt
+  currency          String               @default("NGN") @db.Char(3)
+  status            PaymentAttemptStatus
+  channel           String?              @db.VarChar(30)
+  authorizationUrl  String?              @map("authorization_url") @db.VarChar(500)
+  accessCode        String?              @map("access_code") @db.VarChar(100)
+  gatewayResponse   String?              @map("gateway_response") @db.VarChar(255)
+  errorCode         String?              @map("error_code") @db.VarChar(50)
+  errorMessage      String?              @map("error_message") @db.VarChar(500)
+
+  // Two-ledger refund allocation model (docs/DATABASE_DESIGN.md §9 — the
+  // Phase 2A revision fix): refundedAmountMinor is CONFIRMED refunds only;
+  // pendingRefundAmountMinor is IN-FLIGHT (REFUND_REQUESTED/REFUND_PENDING)
+  // allocations. Never conflate the two.
+  refundedAmountMinor            Int  @default(0) @map("refunded_amount_minor") @db.UnsignedInt
+  pendingRefundAmountMinor       Int  @default(0) @map("pending_refund_amount_minor") @db.UnsignedInt
+  // Generated column (hand-edited in migration): amountMinor -
+  // refundedAmountMinor - pendingRefundAmountMinor. Same derived-column
+  // pattern as inventory_items.quantity_available.
+  availableRefundableAmountMinor Int? @map("available_refundable_amount_minor") @db.UnsignedInt
+
+  paidAt    DateTime? @map("paid_at")
+  failedAt  DateTime? @map("failed_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  order                 Order          @relation("OrderPaymentAttempts", fields: [orderId], references: [id], onDelete: Restrict)
+  authoritativeForOrder Order?         @relation("OrderAuthoritativePaymentAttempt")
+  refunds               Refund[]
+  resolvedWebhookEvents WebhookEvent[]
+
+  @@index([orderId, status], map: "idx_payment_attempts_order_status")
+  @@index([status, createdAt], map: "idx_payment_attempts_status_created")
+  @@map("payment_attempts")
+}
+
+enum WebhookProcessingStatus {
+  PENDING
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+model WebhookEvent {
+  id                    BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  provider              String                  @default("paystack") @db.VarChar(20)
+  eventType             String                  @map("event_type") @db.VarChar(50)
+  paystackTransactionId String                  @map("paystack_transaction_id") @db.VarChar(50)
+  paystackReference     String?                 @map("paystack_reference") @db.VarChar(100)
+  rawPayload            Json                    @map("raw_payload")
+  processingStatus      WebhookProcessingStatus @default(PENDING) @map("processing_status")
+  processingAttempts    Int                     @default(0) @map("processing_attempts") @db.UnsignedSmallInt
+  lockedAt              DateTime?               @map("locked_at")
+  processedAt           DateTime?               @map("processed_at")
+  errorMessage          String?                 @map("error_message") @db.Text
+
+  // Two exclusive nullable FKs instead of a single polymorphic reference —
+  // docs/DATABASE_DESIGN.md §8: real referential integrity for a two-way
+  // (not open-ended) polymorphism, unlike the rejected `media` design (§14).
+  resolvedPaymentAttemptId BigInt? @map("resolved_payment_attempt_id") @db.UnsignedBigInt
+  resolvedRefundId         BigInt? @map("resolved_refund_id") @db.UnsignedBigInt
+
+  receivedAt DateTime @default(now()) @map("received_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // DEVIATION FROM docs/DATABASE_DESIGN.md §8 (documented, not silent — see
+  // Phase 2B report): the design specifies ON DELETE SET NULL here, but
+  // MySQL (error 3823) refuses a CHECK constraint on any column that
+  // participates in a SET NULL/CASCADE foreign-key referential action —
+  // and the mutual-exclusivity CHECK below is an explicit, "MUST be
+  // preserved" requirement. RESTRICT instead; since payment_attempts/
+  // refunds are immutable historical records that are never deleted in
+  // this design (docs/DATABASE_DESIGN.md §20), this changes nothing in
+  // practice — there is no delete path for either to ever exercise SET NULL.
+  resolvedPaymentAttempt PaymentAttempt? @relation(fields: [resolvedPaymentAttemptId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  resolvedRefund         Refund?         @relation(fields: [resolvedRefundId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([eventType, paystackTransactionId], map: "uq_webhook_events_natural_key")
+  @@index([processingStatus, lockedAt], map: "idx_webhook_events_claim")
+  @@index([paystackReference], map: "idx_webhook_events_reference")
+  @@index([processingStatus, receivedAt], map: "idx_webhook_events_status_received")
+  @@map("webhook_events")
+}
+
+enum RefundStatus {
+  REFUND_REQUESTED
+  REFUND_PENDING
+  REFUNDED
+  REFUND_FAILED
+  REFUND_CANCELLED
+}
+
+model Refund {
+  id                      BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  paymentAttemptId        BigInt       @map("payment_attempt_id") @db.UnsignedBigInt
+  orderId                 BigInt       @map("order_id") @db.UnsignedBigInt
+  paystackRefundReference String?      @unique @map("paystack_refund_reference") @db.VarChar(100)
+  amountMinor             Int          @map("amount_minor") @db.UnsignedInt
+  status                  RefundStatus
+  reason                  String?      @db.Text
+  requestedBy             BigInt       @map("requested_by") @db.UnsignedBigInt
+  requestedAt             DateTime     @default(now()) @map("requested_at")
+  processedAt             DateTime?    @map("processed_at")
+  rawWebhookPayload       Json?        @map("raw_webhook_payload")
+  createdAt               DateTime     @default(now()) @map("created_at")
+  updatedAt               DateTime     @updatedAt @map("updated_at")
+
+  paymentAttempt  PaymentAttempt @relation(fields: [paymentAttemptId], references: [id], onDelete: Restrict)
+  order           Order          @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  requestedByUser User           @relation(fields: [requestedBy], references: [id], onDelete: Restrict)
+  webhookEvents   WebhookEvent[]
+
+  @@index([status], map: "idx_refunds_status")
+  @@map("refunds")
+}
+
+// ============================================================================
+// SERVICES / REVIEWS DOMAIN — docs/DATABASE_DESIGN.md §11, §12
+// (Coupons/coupon_redemptions were migrated with Commerce, per
+// docs/DATABASE_DESIGN.md §0's domain grouping — see Phase 2B report.)
+// ============================================================================
+
+enum ServiceType {
+  CONSULTATION
+  SYSTEM_SIZING
+  INSTALLATION
+  MAINTENANCE
+  SITE_ASSESSMENT
+}
+
+enum ServiceRequestStatus {
+  NEW
+  CONTACTED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum PropertyType {
+  RESIDENTIAL
+  COMMERCIAL
+  INDUSTRIAL
+}
+
+model ServiceRequest {
+  id                          BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  userId                      BigInt?              @map("user_id") @db.UnsignedBigInt
+  guestName                   String?              @map("guest_name") @db.VarChar(255)
+  guestEmail                  String?              @map("guest_email") @db.VarChar(255)
+  guestPhone                  String?              @map("guest_phone") @db.VarChar(32)
+  serviceType                 ServiceType          @map("service_type")
+  status                      ServiceRequestStatus
+  propertyType                PropertyType?        @map("property_type")
+  location                    String?              @db.VarChar(500)
+  currentElectricitySituation String?              @map("current_electricity_situation") @db.Text
+  estimatedMonthlyUsageKwh    Decimal?             @map("estimated_monthly_usage_kwh") @db.Decimal(10, 2)
+  appliances                  String?              @db.Text
+  desiredBackupHours          Decimal?             @map("desired_backup_hours") @db.Decimal(5, 2)
+  existingEquipment           String?              @map("existing_equipment") @db.Text
+  budgetRange                 String?              @map("budget_range") @db.VarChar(50)
+  preferredAppointmentAt      DateTime?            @map("preferred_appointment_at")
+  additionalInfo              String?              @map("additional_info") @db.Text
+  assignedTo                  BigInt?              @map("assigned_to") @db.UnsignedBigInt
+  createdAt                   DateTime             @default(now()) @map("created_at")
+  updatedAt                   DateTime             @updatedAt @map("updated_at")
+
+  requester User? @relation("ServiceRequestRequester", fields: [userId], references: [id], onDelete: SetNull)
+  assignee  User? @relation("ServiceRequestAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt], map: "idx_service_requests_queue")
+  @@index([serviceType], map: "idx_service_requests_type")
+  @@index([assignedTo], map: "idx_service_requests_assignee")
+  @@index([userId, createdAt, id], map: "idx_service_requests_user_created")
+  @@index([assignedTo, status, createdAt], map: "idx_service_requests_assignee_queue")
+  @@map("service_requests")
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Review {
+  id          BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  productId   BigInt       @map("product_id") @db.UnsignedBigInt
+  userId      BigInt       @map("user_id") @db.UnsignedBigInt
+  orderItemId BigInt?      @map("order_item_id") @db.UnsignedBigInt
+  rating      Int          @db.UnsignedTinyInt
+  title       String?      @db.VarChar(255)
+  body        String       @db.Text
+  status      ReviewStatus @default(PENDING)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderItem OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+
+  @@unique([productId, userId], map: "uq_reviews_product_user")
+  @@index([productId, status], map: "idx_reviews_product_status")
+  @@map("reviews")
+}
+
+// ============================================================================
+// MEDIA DOMAIN — Phase 14
+// Generic reusable media library. Business entities keep their existing URL
+// fields; media assets own storage metadata and may be reused by products,
+// categories and brands without duplicating binary objects.
+// ============================================================================
+
+enum MediaStorageProvider {
+  LOCAL
+  S3
+}
+
+model MediaAsset {
+  id             String               @id @db.VarChar(36)
+  provider       MediaStorageProvider
+  originalName   String               @map("original_name") @db.VarChar(255)
+  mimeType       String               @map("mime_type") @db.VarChar(120)
+  sizeBytes      BigInt               @map("size_bytes") @db.UnsignedBigInt
+  storageKey     String               @map("storage_key") @db.VarChar(700)
+  publicUrl      String               @map("public_url") @db.VarChar(1000)
+  width          Int                  @db.UnsignedSmallInt
+  height         Int                  @db.UnsignedSmallInt
+  checksumSha256 String               @map("checksum_sha256") @db.Char(64)
+  createdById    BigInt?              @map("created_by") @db.UnsignedBigInt
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  createdBy User? @relation("MediaAssetCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([provider, createdAt], map: "idx_media_assets_provider_created")
+  @@index([createdById, createdAt], map: "idx_media_assets_creator_created")
+  @@index([checksumSha256], map: "idx_media_assets_checksum")
+  @@map("media_assets")
+}
+
+// ============================================================================
+// SECURITY / ABUSE CONTROL — Phase 15
+// ============================================================================
+
+// Better Auth's database-backed rate limiter model. Field names intentionally
+// match Better Auth's adapter contract; the SQL table remains snake_case.
+model RateLimit {
+  id          String @id @db.VarChar(64)
+  key         String @db.VarChar(191)
+  count       Int    @db.UnsignedInt
+  lastRequest BigInt @map("last_request")
+
+  @@index([key], map: "idx_rate_limits_key")
+  @@map("rate_limits")
+}
+
+// Application public-endpoint limiter (service requests, checkout, etc.).
+// Kept separate from Better Auth so auth-library persistence semantics do not
+// leak into business HTTP middleware.
+model RequestRateLimit {
+  id              String   @id @db.VarChar(36)
+  bucketKey       String   @unique(map: "uq_request_rate_limits_bucket") @map("bucket_key") @db.VarChar(191)
+  count           Int      @default(0) @db.UnsignedInt
+  windowStartedAt DateTime @map("window_started_at")
+  expiresAt       DateTime @map("expires_at")
+
+  @@index([expiresAt], map: "idx_request_rate_limits_expiry")
+  @@map("request_rate_limits")
+}
+
+// ============================================================================
+// ADMINISTRATION DOMAIN — docs/DATABASE_DESIGN.md §15, §16
+// ============================================================================
+
+enum AuditLogActorType {
+  USER
+  SYSTEM
+}
+
+model AuditLog {
+  id         BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  actorId    BigInt?           @map("actor_id") @db.UnsignedBigInt
+  actorType  AuditLogActorType @default(USER) @map("actor_type")
+  action     String            @db.VarChar(100)
+  // Deliberately not a real FK — the target table varies per row and spans
+  // essentially every table in the system (docs/DATABASE_DESIGN.md §15).
+  // Audit logs are read for investigation, not joined into transactional
+  // queries, so the referential-integrity loss is an accepted tradeoff here.
+  entityType String            @map("entity_type") @db.VarChar(50)
+  entityId   BigInt            @map("entity_id") @db.UnsignedBigInt
+  beforeData Json?             @map("before_data")
+  afterData  Json?             @map("after_data")
+  ipAddress  String?           @map("ip_address") @db.VarChar(45)
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt], map: "idx_audit_logs_entity")
+  @@index([actorId, createdAt], map: "idx_audit_logs_actor")
+  @@index([action, createdAt], map: "idx_audit_logs_action")
+  @@map("audit_logs")
+}
+
+model Settings {
+  // Singleton row — always id=1, enforced by application convention (not a
+  // database constraint beyond the primary key itself). docs/DATABASE_DESIGN.md §16.
+  id                       Int      @id @default(1) @db.UnsignedTinyInt
+  siteName                 String?  @map("site_name") @db.VarChar(150)
+  defaultCurrency          String   @default("NGN") @map("default_currency") @db.Char(3)
+  defaultDeliveryFeeMinor  Int?     @map("default_delivery_fee_minor") @db.UnsignedInt
+  lowStockThresholdDefault Decimal? @map("low_stock_threshold_default") @db.Decimal(12, 3)
+  supportEmail             String?  @map("support_email") @db.VarChar(255)
+  supportPhone             String?  @map("support_phone") @db.VarChar(32)
+  updatedBy                BigInt?  @map("updated_by") @db.UnsignedBigInt
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  updatedByUser User? @relation("SettingsUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@map("settings")
+}
+
+enum SettingValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+model SettingEntry {
+  key         String           @id @db.VarChar(100)
+  value       Json
+  valueType   SettingValueType @map("value_type")
+  description String?          @db.VarChar(255)
+  updatedBy   BigInt?          @map("updated_by") @db.UnsignedBigInt
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  updatedByUser User? @relation("SettingEntriesUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@map("setting_entries")
+}

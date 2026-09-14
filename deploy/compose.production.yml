@@ -1,0 +1,57 @@
+# Reference container deployment. MySQL is intentionally absent: production
+# uses a managed MySQL 8-compatible service, not a database container colocated
+# with the web process.
+services:
+  app:
+    image: ${WATPLUX_IMAGE:?Set WATPLUX_IMAGE to an immutable image tag/digest}
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "127.0.0.1:3000:3000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,uid=1001,gid=1001,mode=1770
+      - /app/.next/cache:size=256m,uid=1001,gid=1001,mode=0770
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  webhook-scheduler:
+    image: curlimages/curl:8.12.1
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    env_file:
+      - .env.worker
+    environment:
+      APP_INTERNAL_URL: http://app:3000
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while true; do
+          curl --fail --silent --show-error --max-time 25 \
+            -X POST \
+            -H "x-internal-worker-secret: $${INTERNAL_WORKER_SECRET}" \
+            "$${APP_INTERNAL_URL}/api/internal/process-webhook-events" || true
+          sleep 60
+        done
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true

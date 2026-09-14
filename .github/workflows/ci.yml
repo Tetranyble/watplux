@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: watplux
+          MYSQL_USER: watplux
+          MYSQL_PASSWORD: watplux
+          MYSQL_ROOT_PASSWORD: watplux_root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pwatplux_root"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: mysql://watplux:watplux@127.0.0.1:3306/watplux
+      NODE_ENV: test
+      LOG_LEVEL: silent
+      BETTER_AUTH_SECRET: ci-only-better-auth-secret-32-characters-minimum
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      APP_BASE_URL: http://127.0.0.1:3000
+      GUEST_ORDER_TOKEN_SECRET: ci-only-guest-order-token-secret-32-characters
+      INTERNAL_WORKER_SECRET: ci-only-internal-worker-secret-32chars
+      MEDIA_STORAGE_PROVIDER: local
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint (includes architecture import-boundary rule)
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: Build
+        run: npm run build
+
+      - name: Start app and verify health endpoint
+        shell: bash
+        run: |
+          npm start -- --hostname 127.0.0.1 > /tmp/watplux-next.log 2>&1 &
+          APP_PID=$!
+          trap 'kill "$APP_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3000/api/health > /tmp/health.json; then break; fi
+            sleep 2
+          done
+          cat /tmp/health.json
+          grep -q '"status":"ok"' /tmp/health.json
+          kill "$APP_PID"
+          wait "$APP_PID" || true
+          trap - EXIT
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: API and browser release journeys
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14

@@ -1,0 +1,204 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-geist-sans);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-brand-sun: var(--brand-sun);
+  --color-brand-sun-foreground: var(--brand-sun-foreground);
+  --color-brand-leaf: var(--brand-leaf);
+  --color-brand-ink: var(--brand-ink);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.65);
+  --radius-md: calc(var(--radius) * 0.82);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.35);
+  --radius-2xl: calc(var(--radius) * 1.75);
+  --radius-3xl: calc(var(--radius) * 2.15);
+  --radius-4xl: calc(var(--radius) * 2.55);
+}
+
+/*
+ * Watplux design tokens
+ * ---------------------
+ * Deep solar-green is the interaction/brand anchor. Solar-gold is a
+ * restrained energy accent, not the primary CTA color. This keeps long
+ * commerce/admin sessions calm while still giving the product a memorable
+ * solar identity. Semantic UI should consume primary/accent/success/warning;
+ * brand-* tokens are reserved for brand moments and data visualisation.
+ */
+:root {
+  color-scheme: light;
+  --background: #f8faf8;
+  --foreground: #122019;
+  --card: #ffffff;
+  --card-foreground: #122019;
+  --popover: #ffffff;
+  --popover-foreground: #122019;
+
+  --primary: #0b6b4d;
+  --primary-foreground: #ffffff;
+  --secondary: #edf4f0;
+  --secondary-foreground: #173d30;
+  --muted: #f0f4f1;
+  --muted-foreground: #64736a;
+  --accent: #fff3cf;
+  --accent-foreground: #513a00;
+  --destructive: #c73636;
+  --border: #dce5df;
+  --input: #d6e1da;
+  --ring: #168263;
+
+  --brand-sun: #f5b700;
+  --brand-sun-foreground: #302300;
+  --brand-leaf: #0b6b4d;
+  --brand-ink: #0d241b;
+  --success: #15805f;
+  --success-foreground: #ffffff;
+  --warning: #f5b700;
+  --warning-foreground: #302300;
+
+  --chart-1: #0b6b4d;
+  --chart-2: #f5b700;
+  --chart-3: #2d7fb8;
+  --chart-4: #8764c7;
+  --chart-5: #d36d3f;
+
+  --radius: 0.75rem;
+
+  --sidebar: #f3f7f4;
+  --sidebar-foreground: #173228;
+  --sidebar-primary: #0b6b4d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8f1ec;
+  --sidebar-accent-foreground: #143b2d;
+  --sidebar-border: #d8e3dc;
+  --sidebar-ring: #168263;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0b1410;
+  --foreground: #eef6f1;
+  --card: #111d17;
+  --card-foreground: #eef6f1;
+  --popover: #111d17;
+  --popover-foreground: #eef6f1;
+
+  --primary: #58c9a1;
+  --primary-foreground: #06281c;
+  --secondary: #182820;
+  --secondary-foreground: #e0eee6;
+  --muted: #17241d;
+  --muted-foreground: #9aada2;
+  --accent: #3b310d;
+  --accent-foreground: #ffe6a1;
+  --destructive: #f07171;
+  --border: #26372e;
+  --input: #31463a;
+  --ring: #58c9a1;
+
+  --brand-sun: #f6c63d;
+  --brand-sun-foreground: #2e2400;
+  --brand-leaf: #58c9a1;
+  --brand-ink: #e7f4ec;
+  --success: #58c9a1;
+  --success-foreground: #06281c;
+  --warning: #f6c63d;
+  --warning-foreground: #2e2400;
+
+  --chart-1: #58c9a1;
+  --chart-2: #f6c63d;
+  --chart-3: #65afe1;
+  --chart-4: #b79be8;
+  --chart-5: #ee9b73;
+
+  --sidebar: #0e1914;
+  --sidebar-foreground: #e8f2ec;
+  --sidebar-primary: #58c9a1;
+  --sidebar-primary-foreground: #06281c;
+  --sidebar-accent: #17271f;
+  --sidebar-accent-foreground: #e8f2ec;
+  --sidebar-border: #24352c;
+  --sidebar-ring: #58c9a1;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply scroll-smooth font-sans;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+}
+
+@layer utilities {
+  .page-shell {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-space {
+    @apply py-12 sm:py-16 lg:py-20;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border bg-card text-card-foreground shadow-sm;
+  }
+
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.18em] text-primary;
+  }
+}

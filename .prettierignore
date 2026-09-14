@@ -1,0 +1,18 @@
+.next
+node_modules
+coverage
+playwright-report
+test-results
+watplux-2
+prisma/migrations
+package-lock.json
+
+# shadcn-generated/managed — left exactly as the CLI produced them.
+components/ui
+lib/utils.ts
+app/globals.css
+
+# Prose/planning docs with hand-laid-out ASCII diagrams — Prettier's
+# markdown formatter would rewrap them and corrupt the diagrams.
+*.md
+docs/**/*.md

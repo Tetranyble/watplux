@@ -1,0 +1,3 @@
+# Run from a scheduler that can reach the private/internal application origin.
+# Keep INTERNAL_WORKER_SECRET out of this file; inject it as an environment secret.
+* * * * * /app/scripts/trigger-webhook-worker.sh >> /proc/1/fd/1 2>> /proc/1/fd/2

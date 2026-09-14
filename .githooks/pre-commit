@@ -1,0 +1,7 @@
+#!/bin/sh
+set -eu
+
+printf '%s\n' 'Running Watplux fast pre-commit audits...'
+npm run audit:lockfile
+npm run audit:ui
+npm run audit:release

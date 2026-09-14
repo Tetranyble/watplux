@@ -1,0 +1,103 @@
+name: Release container images
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: watplux
+          MYSQL_USER: watplux
+          MYSQL_PASSWORD: watplux
+          MYSQL_ROOT_PASSWORD: watplux_root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pwatplux_root"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: mysql://watplux:watplux@127.0.0.1:3306/watplux
+      NODE_ENV: test
+      DEPLOYMENT_ENV: test
+      LOG_LEVEL: silent
+      BETTER_AUTH_SECRET: release-ci-better-auth-secret-32-characters
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      APP_BASE_URL: http://127.0.0.1:3000
+      GUEST_ORDER_TOKEN_SECRET: release-ci-guest-token-secret-32-characters
+      INTERNAL_WORKER_SECRET: release-ci-internal-worker-secret-32-characters
+      MEDIA_STORAGE_PROVIDER: local
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client and migrate disposable build database
+        run: |
+          npm run db:generate
+          npm run db:migrate:deploy
+
+      - name: Release verification
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:release
+          npm run build
+        env:
+          CI: true
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push immutable runtime and migrator images
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPOSITORY="${GITHUB_REPOSITORY,,}"
+          IMAGE="ghcr.io/${REPOSITORY}"
+          VERSION="${GITHUB_REF_NAME}"
+
+          docker build --network=host \
+            --target runner \
+            --build-arg BUILD_DATABASE_URL="$DATABASE_URL" \
+            --build-arg APP_VERSION="$VERSION" \
+            --build-arg GIT_SHA="$GITHUB_SHA" \
+            -t "$IMAGE:$GITHUB_SHA" \
+            -t "$IMAGE:$VERSION" .
+
+          docker build \
+            --target migrator \
+            -t "$IMAGE:$GITHUB_SHA-migrator" \
+            -t "$IMAGE:$VERSION-migrator" .
+
+          docker push "$IMAGE:$GITHUB_SHA"
+          docker push "$IMAGE:$VERSION"
+          docker push "$IMAGE:$GITHUB_SHA-migrator"
+          docker push "$IMAGE:$VERSION-migrator"
+
+          echo "Runtime image: $IMAGE:$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Migrator image: $IMAGE:$GITHUB_SHA-migrator" >> "$GITHUB_STEP_SUMMARY"

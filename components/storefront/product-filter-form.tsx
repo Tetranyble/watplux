@@ -1,0 +1,276 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { RotateCcw, Search } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+import {
+  ControlledCheckbox,
+  ControlledInput,
+  ControlledSearchSelect,
+  ControlledSelect,
+} from "@/components/forms/controlled-fields";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import type {
+  CatalogBrand,
+  CatalogCategory,
+} from "@/src/modules/catalog/types";
+
+export interface ProductFilterValues {
+  category?: string;
+  brand?: string;
+  search?: string;
+  minPrice?: string;
+  maxPrice?: string;
+  powerMin?: string;
+  powerMax?: string;
+  voltage?: string;
+  phase?: string;
+  inStock?: string;
+  sort?: string;
+}
+
+const optionalNonNegative = z.union([
+  z.literal(""),
+  z.string().regex(/^\d+$/, "Enter a whole number of zero or more."),
+]);
+const productFilterSchema = z
+  .object({
+    search: z.string().max(120).default(""),
+    category: z.string().default("all"),
+    brand: z.string().default("all"),
+    minPrice: optionalNonNegative.default(""),
+    maxPrice: optionalNonNegative.default(""),
+    powerMin: optionalNonNegative.default(""),
+    powerMax: optionalNonNegative.default(""),
+    voltage: optionalNonNegative.default(""),
+    phase: z.enum(["any", "SINGLE", "THREE"]).default("any"),
+    inStock: z.boolean().default(false),
+    sort: z
+      .enum(["newest", "featured", "price_asc", "price_desc"])
+      .default("newest"),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.minPrice &&
+      value.maxPrice &&
+      Number(value.minPrice) > Number(value.maxPrice)
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["maxPrice"],
+        message: "Maximum price must be at least the minimum price.",
+      });
+    if (
+      value.powerMin &&
+      value.powerMax &&
+      Number(value.powerMin) > Number(value.powerMax)
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["powerMax"],
+        message: "Maximum power must be at least the minimum power.",
+      });
+  });
+type FormValues = z.input<typeof productFilterSchema>;
+
+export function ProductFilterForm({
+  categories,
+  brands,
+  values,
+}: {
+  categories: CatalogCategory[];
+  brands: CatalogBrand[];
+  values: ProductFilterValues;
+}) {
+  const router = useRouter();
+  const defaults: FormValues = {
+    search: values.search ?? "",
+    category: values.category ?? "all",
+    brand: values.brand ?? "all",
+    minPrice: values.minPrice ?? "",
+    maxPrice: values.maxPrice ?? "",
+    powerMin: values.powerMin ?? "",
+    powerMax: values.powerMax ?? "",
+    voltage: values.voltage ?? "",
+    phase:
+      values.phase === "SINGLE" || values.phase === "THREE"
+        ? values.phase
+        : "any",
+    inStock: values.inStock === "true",
+    sort:
+      values.sort === "featured" ||
+      values.sort === "price_asc" ||
+      values.sort === "price_desc"
+        ? values.sort
+        : "newest",
+  };
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { isValid },
+  } = useForm<FormValues>({
+    resolver: zodResolver(productFilterSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: defaults,
+  });
+
+  const submit = handleSubmit((next) => {
+    const params = new URLSearchParams();
+    for (const key of [
+      "search",
+      "minPrice",
+      "maxPrice",
+      "powerMin",
+      "powerMax",
+      "voltage",
+    ] as const)
+      if (next[key]) params.set(key, next[key]);
+    if (next.category && next.category !== "all")
+      params.set("category", next.category);
+    if (next.brand && next.brand !== "all") params.set("brand", next.brand);
+    if (next.phase && next.phase !== "any") params.set("phase", next.phase);
+    if (next.inStock) params.set("inStock", "true");
+    if (next.sort && next.sort !== "newest") params.set("sort", next.sort);
+    router.push(params.size ? `/products?${params.toString()}` : "/products", {
+      scroll: false,
+    });
+  });
+
+  function clear() {
+    const clean: FormValues = {
+      search: "",
+      category: "all",
+      brand: "all",
+      minPrice: "",
+      maxPrice: "",
+      powerMin: "",
+      powerMax: "",
+      voltage: "",
+      phase: "any",
+      inStock: false,
+      sort: "newest",
+    };
+    reset(clean);
+    router.push("/products", { scroll: false });
+  }
+
+  return (
+    <Card size="sm">
+      <CardContent className="space-y-4 pt-0">
+        <form onSubmit={submit} className="space-y-4">
+          <ControlledInput
+            control={control}
+            name="search"
+            label="Search"
+            type="search"
+            placeholder="Panels, inverters, batteries…"
+          />
+          <ControlledSearchSelect
+            control={control}
+            name="category"
+            label="Category"
+            options={categories.map((item) => ({
+              value: item.slug,
+              label: item.name,
+            }))}
+            clearValue="all"
+            clearLabel="All categories"
+            clearResult="value"
+            placeholder="All categories"
+          />
+          <ControlledSearchSelect
+            control={control}
+            name="brand"
+            label="Brand"
+            options={brands.map((item) => ({
+              value: item.slug,
+              label: item.name,
+            }))}
+            clearValue="all"
+            clearLabel="All brands"
+            clearResult="value"
+            placeholder="All brands"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <ControlledInput
+              control={control}
+              name="minPrice"
+              label="Min price (₦)"
+              inputMode="numeric"
+            />
+            <ControlledInput
+              control={control}
+              name="maxPrice"
+              label="Max price (₦)"
+              inputMode="numeric"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <ControlledInput
+              control={control}
+              name="powerMin"
+              label="Min power (W)"
+              inputMode="numeric"
+            />
+            <ControlledInput
+              control={control}
+              name="powerMax"
+              label="Max power (W)"
+              inputMode="numeric"
+            />
+          </div>
+          <ControlledInput
+            control={control}
+            name="voltage"
+            label="Voltage (V)"
+            inputMode="numeric"
+          />
+          <ControlledSelect
+            control={control}
+            name="phase"
+            label="Phase"
+            options={[
+              { value: "SINGLE", label: "Single-phase" },
+              { value: "THREE", label: "Three-phase" },
+            ]}
+            clearValue="any"
+            clearLabel="Any phase"
+            clearResult="value"
+          />
+          <ControlledCheckbox
+            control={control}
+            name="inStock"
+            label="In-stock products only"
+          />
+          <ControlledSelect
+            control={control}
+            name="sort"
+            label="Sort by"
+            options={[
+              { value: "newest", label: "Newest" },
+              { value: "featured", label: "Featured first" },
+              { value: "price_asc", label: "Price: low to high" },
+              { value: "price_desc", label: "Price: high to low" },
+            ]}
+          />
+          <div className="grid gap-2">
+            <Button type="submit" disabled={!isValid}>
+              <Search className="size-4" />
+              Apply filters
+            </Button>
+            <Button type="button" variant="outline" onClick={clear}>
+              <RotateCcw className="size-4" />
+              Clear filters
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
