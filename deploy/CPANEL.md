@@ -76,6 +76,11 @@ cd /home/CPANEL_USER/watplux/releases/<git-sha>
 npm ci --include=dev
 ```
 
+The install generates the Linux Prisma client and automatically links Prisma,
+Argon2, and Sharp from cPanel's application dependency directory into the
+packaged standalone runtime. If dependencies were installed with lifecycle
+scripts disabled, run `npm run prepare:cpanel:runtime` before preflight.
+
 Always extract into a newly created, empty SHA-named directory. Do not unpack a
 new archive over an earlier `runtime/`; stale Turbopack chunks can survive a ZIP
 overlay and be loaded after restart. Confirm the extracted release before

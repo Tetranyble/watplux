@@ -9,6 +9,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 FROM base AS deps
 COPY package.json package-lock.json ./
 COPY prisma ./prisma
+COPY scripts/prepare-cpanel-runtime.mjs ./scripts/prepare-cpanel-runtime.mjs
 RUN npm ci
 
 # Next.js Cache Components can execute cached server reads while building.

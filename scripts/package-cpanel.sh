@@ -82,6 +82,7 @@ for required in \
   runtime/public/web-app-manifest-192x192.png \
   package-lock.json \
   prisma/schema.prisma \
+  scripts/prepare-cpanel-runtime.mjs \
   server.js; do
   if [[ ! -f "$stage_dir/app/$required" ]]; then
     echo "Packaged cPanel runtime is missing $required"

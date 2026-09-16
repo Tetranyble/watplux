@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { access, readdir, readFile } from "node:fs/promises";
+import { access, lstat, readdir, readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import path from "node:path";
 
 const problems = [];
@@ -79,6 +80,42 @@ for (const packageName of ["sharp", "@node-rs/argon2", "@prisma/client"]) {
   } catch (error) {
     problems.push(
       `${packageName} could not load on this host: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+for (const runtimeDependency of [
+  "runtime/node_modules/sharp",
+  "runtime/node_modules/@node-rs/argon2",
+  "runtime/node_modules/@prisma/client",
+  "runtime/node_modules/.prisma",
+]) {
+  try {
+    const state = await lstat(runtimeDependency);
+    if (!state.isSymbolicLink()) {
+      problems.push(
+        `${runtimeDependency} is not linked to the cPanel-installed Linux dependency`,
+      );
+    }
+  } catch {
+    problems.push(
+      `${runtimeDependency} is missing; run npm run prepare:cpanel:runtime after npm ci`,
+    );
+  }
+}
+
+const runtimeRequire = createRequire(path.resolve("runtime/server.js"));
+for (const packageName of [
+  "sharp",
+  "@node-rs/argon2",
+  "@prisma/client",
+  ".prisma/client/default",
+]) {
+  try {
+    runtimeRequire.resolve(packageName);
+  } catch (error) {
+    problems.push(
+      `${packageName} is not resolvable from runtime/server.js: ${error instanceof Error ? error.message : String(error)}. Run npm run prepare:cpanel:runtime after npm ci.`,
     );
   }
 }
