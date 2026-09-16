@@ -1,27 +1,38 @@
-"use strict";
-
-/* eslint-disable @typescript-eslint/no-require-imports -- cPanel startup is CommonJS and delegates to Next's generated standalone CommonJS server. */
-
 process.env.NODE_ENV = "production";
-process.env.HOSTNAME ||= "0.0.0.0";
 
 const { existsSync } = require("node:fs");
 const path = require("node:path");
 
-const environmentFile = path.join(__dirname, ".env.production");
 const standaloneServer = path.join(__dirname, "runtime", "server.js");
 
-if (existsSync(environmentFile)) {
-  process.loadEnvFile(environmentFile);
+if (existsSync(standaloneServer)) {
+  try {
+    process.loadEnvFile(path.join(__dirname, ".env.production"));
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  require(standaloneServer);
+  return;
 }
 
-if (!existsSync(standaloneServer)) {
-  throw new Error(
-    "Packaged runtime/server.js is missing. Upload and extract a Watplux cPanel release archive before starting the application.",
-  );
-}
+const { createServer } = require("node:http");
+const next = require("next");
 
-// cPanel/Passenger supplies PORT. The generated Next.js standalone server
-// handles the HTTP lifecycle; this file only loads runtime configuration and
-// delegates to it.
-require(standaloneServer);
+const port = Number.parseInt(process.env.PORT || "3000", 10);
+const hostname = "0.0.0.0";
+const app = next({ dev: false, hostname, port });
+const handle = app.getRequestHandler();
+
+app
+  .prepare()
+  .then(() => {
+    createServer((request, response) => handle(request, response)).listen(
+      port,
+      hostname,
+      () => console.log(`Watplux is ready on ${hostname}:${port}`),
+    );
+  })
+  .catch((error) => {
+    console.error("Unable to start Watplux", error);
+    process.exit(1);
+  });
