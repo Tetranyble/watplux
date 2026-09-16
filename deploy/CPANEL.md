@@ -76,6 +76,18 @@ cd /home/CPANEL_USER/watplux/releases/<git-sha>
 npm ci --include=dev
 ```
 
+Always extract into a newly created, empty SHA-named directory. Do not unpack a
+new archive over an earlier `runtime/`; stale Turbopack chunks can survive a ZIP
+overlay and be loaded after restart. Confirm the extracted release before
+switching traffic:
+
+```bash
+cat RELEASE_SHA
+test -f runtime/.next/server/webpack-runtime.js
+test ! -f 'runtime/.next/server/chunks/[turbopack]_runtime.js'
+test ! -f 'runtime/.next/server/chunks/ssr/[turbopack]_runtime.js'
+```
+
 The cPanel-side install is intentional. Sharp, Argon2, and Prisma contain
 native/platform-specific code and must be installed/generated on cPanel's
 Linux runtime. Do not run `npm run build` on cPanel; the production build is

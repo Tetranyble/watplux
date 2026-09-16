@@ -50,3 +50,6 @@ next-env.d.ts
 /backups/
 !deploy/.env.cpanel.example
 !deploy/.env.worker.example
+
+# Local reference artifact used to compare the cPanel package layout.
+/ugbanawaji-cpanel.zip

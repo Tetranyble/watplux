@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { access } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
+import path from "node:path";
 
 const problems = [];
 const [nodeMajor, nodeMinor, nodePatch] = process.versions.node
@@ -13,12 +14,63 @@ if (nodeMajor !== 22 || nodeMinor < 23 || (nodeMinor === 23 && nodePatch < 1)) {
   );
 }
 
-for (const file of ["runtime/server.js", "runtime/.next/BUILD_ID"]) {
+for (const file of [
+  "runtime/server.js",
+  "runtime/.next/BUILD_ID",
+  "runtime/.next/server/webpack-runtime.js",
+  "runtime/node_modules/next/dist/compiled/cookie/index.js",
+]) {
   try {
     await access(file);
   } catch {
     problems.push(`${file} is missing`);
   }
+}
+
+const serverOutputDirectory = "runtime/.next/server";
+let turbopackRuntime;
+let hashedPrismaExternal;
+
+async function inspectServerOutput(directory) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const file = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      await inspectServerOutput(file);
+      continue;
+    }
+
+    if (entry.name === "[turbopack]_runtime.js") {
+      turbopackRuntime ??= file;
+    }
+
+    if (entry.name.endsWith(".js")) {
+      const contents = await readFile(file, "utf8");
+      if (/@prisma\/client-[0-9a-f]{8,}/i.test(contents)) {
+        hashedPrismaExternal ??= file;
+      }
+    }
+  }
+}
+
+try {
+  await inspectServerOutput(serverOutputDirectory);
+} catch (error) {
+  problems.push(
+    `${serverOutputDirectory} could not be inspected: ${error instanceof Error ? error.message : String(error)}`,
+  );
+}
+
+if (turbopackRuntime) {
+  problems.push(
+    `stale Turbopack runtime found at ${turbopackRuntime}; deploy into a new empty release directory instead of extracting over an older runtime`,
+  );
+}
+
+if (hashedPrismaExternal) {
+  problems.push(
+    `non-installable hashed Prisma external found in ${hashedPrismaExternal}; rebuild with npm run build:cpanel`,
+  );
 }
 
 for (const packageName of ["sharp", "@node-rs/argon2", "@prisma/client"]) {

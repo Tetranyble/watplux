@@ -31,6 +31,12 @@ if [[ ! -f .next/standalone/server.js || ! -f .next/standalone/.next/BUILD_ID ]]
   exit 1
 fi
 
+if [[ ! -f .next/standalone/.next/server/webpack-runtime.js ]]; then
+  echo "The standalone runtime is not the required cPanel webpack build."
+  echo "Run npm run build:cpanel before packaging."
+  exit 1
+fi
+
 # A Turbopack standalone build can refer to synthetic external packages such
 # as @prisma/client-<hash>. Those packages do not exist in the npm registry and
 # fail after deployment when native dependencies are installed on Linux.
@@ -71,6 +77,8 @@ printf '%s\n' "$release_sha" > "$stage_dir/app/RELEASE_SHA"
 for required in \
   runtime/server.js \
   runtime/.next/BUILD_ID \
+  runtime/.next/server/webpack-runtime.js \
+  runtime/node_modules/next/dist/compiled/cookie/index.js \
   runtime/public/web-app-manifest-192x192.png \
   package-lock.json \
   prisma/schema.prisma \
