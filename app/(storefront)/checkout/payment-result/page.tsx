@@ -34,8 +34,10 @@ export default async function PaymentResultPage({
   }
 
   return (
-    <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-16">
-      <PaymentResultPanel orderId={orderId} guestToken={guestToken} />
+    <div className="page-shell flex flex-1 items-center justify-center py-16">
+      <div className="w-full max-w-lg">
+        <PaymentResultPanel orderId={orderId} guestToken={guestToken} />
+      </div>
     </div>
   );
 }

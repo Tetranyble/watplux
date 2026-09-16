@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { History, PackageOpen } from "lucide-react";
 
 import { InventoryMutationForms } from "@/components/admin/inventory-mutation-forms";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate, formatQuantity } from "@/lib/format";
-import { NotFoundError } from "@/lib/errors";
+import { isNotFoundError } from "@/lib/errors";
 import { getSessionUser } from "@/lib/session";
 import { PERMISSION_INVENTORY_ADJUST } from "@/src/modules/inventory/constants";
 import { idParamSchema } from "@/src/modules/inventory/schema";
@@ -46,7 +48,7 @@ export default async function AdminInventoryDetailPage({
   try {
     balance = await getInventoryForVariant(actor, parsedVariantId.data);
   } catch (error) {
-    if (!(error instanceof NotFoundError)) {
+    if (!isNotFoundError(error)) {
       throw error;
     }
   }
@@ -65,13 +67,13 @@ export default async function AdminInventoryDetailPage({
   const canAdjust = actor.permissions.has(PERMISSION_INVENTORY_ADJUST);
 
   return (
-    <div className="flex max-w-3xl flex-col gap-8">
+    <div className="flex min-w-0 flex-1 flex-col gap-8">
       <h1 className="text-2xl font-semibold">
         Inventory — Variant #{variantId}
       </h1>
 
       {balance ? (
-        <section className="grid grid-cols-3 gap-4">
+        <section className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-lg border p-4">
             <p className="text-xs text-muted-foreground">Available</p>
             <p className="text-xl font-semibold">
@@ -94,10 +96,12 @@ export default async function AdminInventoryDetailPage({
           </div>
         </section>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          No inventory is tracked for this variant yet — recording a restock
-          below will start tracking it.
-        </p>
+        <EmptyState
+          className="min-h-40 py-8"
+          icon={PackageOpen}
+          title="Inventory tracking hasn’t started"
+          description="Record the first restock below to create this variant’s inventory balance."
+        />
       )}
 
       {canAdjust ? (
@@ -113,9 +117,12 @@ export default async function AdminInventoryDetailPage({
             Movement history
           </h2>
           {history.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No movements recorded yet.
-            </p>
+            <EmptyState
+              className="min-h-40 py-8"
+              icon={History}
+              title="No movements recorded yet"
+              description="Restocks, adjustments and returns will appear here."
+            />
           ) : (
             <ul className="flex flex-col gap-2">
               {history.items.map((movement) => (

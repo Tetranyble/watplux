@@ -1,9 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Pencil, Power } from "lucide-react";
+import { Pencil, Power, SearchX, Tags } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "@/components/ui/toast";
 import type { z } from "zod";
@@ -13,6 +13,7 @@ import {
   ControlledTextarea,
   FieldShell,
 } from "@/components/forms/controlled-fields";
+import { AdminEmptyState } from "@/components/admin/admin-empty-state";
 import { ResourceToolbar } from "@/components/forms/resource-toolbar";
 import { MediaImageField } from "@/components/admin/media-image-field";
 import { UrlDialog, useUrlDialog } from "@/components/router/url-dialog";
@@ -35,6 +36,22 @@ import type { CatalogBrand } from "@/src/modules/catalog/types";
 type CreateValues = z.input<typeof createBrandSchema>;
 type UpdateValues = z.input<typeof updateBrandSchema>;
 
+const CREATE_BRAND_DEFAULTS: CreateValues = {
+  name: "",
+  slug: undefined,
+  logoUrl: undefined,
+  description: undefined,
+};
+
+function brandValues(brand: CatalogBrand): UpdateValues {
+  return {
+    name: brand.name,
+    slug: brand.slug,
+    logoUrl: brand.logoUrl ?? null,
+    description: brand.description ?? null,
+  };
+}
+
 async function mutate(
   url: string,
   method: string,
@@ -55,81 +72,90 @@ async function mutate(
 
 function CreateBrandDialog({ onDone }: { onDone: () => void }) {
   const router = useRouter();
+  const { isOpen } = useUrlDialog("brand-create");
   const {
     control,
     handleSubmit,
+    reset,
     formState: { isSubmitting, isValid },
   } = useForm<CreateValues>({
     resolver: zodResolver(createBrandSchema),
     mode: "onChange",
     reValidateMode: "onChange",
-    defaultValues: {
-      name: "",
-      slug: undefined,
-      logoUrl: undefined,
-      description: undefined,
-    },
+    defaultValues: CREATE_BRAND_DEFAULTS,
   });
+  useEffect(() => {
+    if (!isOpen) reset(CREATE_BRAND_DEFAULTS);
+  }, [isOpen, reset]);
+
   return (
     <UrlDialog
       dialogKey="brand-create"
       title="Create brand"
       description="Add a reusable brand to the catalog. Validation updates as you type."
     >
-      {(close) => (
-        <form
-          onSubmit={handleSubmit(async (values) => {
-            try {
-              await mutate(
-                "/api/admin/catalog/brands",
-                "POST",
-                values as Record<string, unknown>,
-              );
-              toast.success("Brand created.");
-              close();
-              onDone();
-              router.refresh();
-            } catch (error) {
-              toast.error("Could not create brand", {
-                description:
-                  error instanceof Error ? error.message : "Please try again.",
-              });
-            }
-          })}
-          className="grid gap-4"
-          noValidate
-        >
-          <ControlledInput
-            control={control}
-            name="name"
-            label="Brand name"
-            required
-            autoFocus
-          />
-          <ControlledInput
-            control={control}
-            name="slug"
-            label="Slug"
-            description="Optional. Leave blank to derive it from the name."
-            emptyAsUndefined
-          />
-          <ControlledTextarea
-            control={control}
-            name="description"
-            label="Description"
-            rows={3}
-            emptyAsUndefined
-          />
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={close}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !isValid}>
-              {isSubmitting ? "Creating…" : "Create brand"}
-            </Button>
-          </DialogFooter>
-        </form>
-      )}
+      {(close) => {
+        const closeAndReset = () => {
+          reset(CREATE_BRAND_DEFAULTS);
+          close();
+        };
+        return (
+          <form
+            onSubmit={handleSubmit(async (values) => {
+              try {
+                await mutate(
+                  "/api/admin/catalog/brands",
+                  "POST",
+                  values as Record<string, unknown>,
+                );
+                toast.success("Brand created.");
+                closeAndReset();
+                onDone();
+                router.refresh();
+              } catch (error) {
+                toast.error("Could not create brand", {
+                  description:
+                    error instanceof Error
+                      ? error.message
+                      : "Please try again.",
+                });
+              }
+            })}
+            className="grid gap-4"
+            noValidate
+          >
+            <ControlledInput
+              control={control}
+              name="name"
+              label="Brand name"
+              required
+              autoFocus
+            />
+            <ControlledInput
+              control={control}
+              name="slug"
+              label="Slug"
+              description="Optional. Leave blank to derive it from the name."
+              emptyAsUndefined
+            />
+            <ControlledTextarea
+              control={control}
+              name="description"
+              label="Description"
+              rows={3}
+              emptyAsUndefined
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeAndReset}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting || !isValid}>
+                {isSubmitting ? "Creating…" : "Create brand"}
+              </Button>
+            </DialogFooter>
+          </form>
+        );
+      }}
     </UrlDialog>
   );
 }
@@ -142,24 +168,22 @@ function EditBrandDialog({
   onDone: () => void;
 }) {
   const router = useRouter();
+  const { isOpen } = useUrlDialog("brand-edit");
   const {
     control,
     handleSubmit,
+    reset,
     setValue,
     formState: { isSubmitting, isValid },
   } = useForm<UpdateValues>({
     resolver: zodResolver(updateBrandSchema),
     mode: "onChange",
     reValidateMode: "onChange",
-    values: brand
-      ? {
-          name: brand.name,
-          slug: brand.slug,
-          logoUrl: brand.logoUrl ?? null,
-          description: brand.description ?? null,
-        }
-      : {},
+    defaultValues: brand ? brandValues(brand) : {},
   });
+  useEffect(() => {
+    if (brand) reset(brandValues(brand));
+  }, [brand, isOpen, reset]);
   const logoUrl = useWatch({ control, name: "logoUrl" });
   if (!brand) return null;
   return (
@@ -168,73 +192,82 @@ function EditBrandDialog({
       title="Edit brand"
       description={`Update ${brand.name}. Changes are validated before submission.`}
     >
-      {(close) => (
-        <form
-          onSubmit={handleSubmit(async (values) => {
-            try {
-              await mutate(
-                `/api/admin/catalog/brands/${brand.id}`,
-                "PATCH",
-                values as Record<string, unknown>,
-              );
-              toast.success("Brand updated.");
-              close();
-              onDone();
-              router.refresh();
-            } catch (error) {
-              toast.error("Could not update brand", {
-                description:
-                  error instanceof Error ? error.message : "Please try again.",
-              });
-            }
-          })}
-          className="grid gap-4"
-          noValidate
-        >
-          <ControlledInput
-            control={control}
-            name="name"
-            label="Brand name"
-            required
-          />
-          <ControlledInput
-            control={control}
-            name="slug"
-            label="Slug"
-            emptyAsUndefined
-          />
-          <ControlledTextarea
-            control={control}
-            name="description"
-            label="Description"
-            rows={3}
-            emptyAsNull
-          />
-          <FieldShell
-            id="brand-logo"
-            label="Brand logo"
-            description="Upload to Watplux media or paste a supported URL."
-          >
-            <MediaImageField
-              value={typeof logoUrl === "string" ? logoUrl : ""}
-              onValueChange={(value) =>
-                setValue("logoUrl", value || null, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
+      {(close) => {
+        const closeAndReset = () => {
+          reset(brandValues(brand));
+          close();
+        };
+        return (
+          <form
+            onSubmit={handleSubmit(async (values) => {
+              try {
+                await mutate(
+                  `/api/admin/catalog/brands/${brand.id}`,
+                  "PATCH",
+                  values as Record<string, unknown>,
+                );
+                toast.success("Brand updated.");
+                reset(values);
+                close();
+                onDone();
+                router.refresh();
+              } catch (error) {
+                toast.error("Could not update brand", {
+                  description:
+                    error instanceof Error
+                      ? error.message
+                      : "Please try again.",
+                });
               }
+            })}
+            className="grid gap-4"
+            noValidate
+          >
+            <ControlledInput
+              control={control}
+              name="name"
+              label="Brand name"
+              required
             />
-          </FieldShell>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={close}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting || !isValid}>
-              {isSubmitting ? "Saving…" : "Save changes"}
-            </Button>
-          </DialogFooter>
-        </form>
-      )}
+            <ControlledInput
+              control={control}
+              name="slug"
+              label="Slug"
+              emptyAsUndefined
+            />
+            <ControlledTextarea
+              control={control}
+              name="description"
+              label="Description"
+              rows={3}
+              emptyAsNull
+            />
+            <FieldShell
+              id="brand-logo"
+              label="Brand logo"
+              description="Upload to Watplux media or paste a supported URL."
+            >
+              <MediaImageField
+                value={typeof logoUrl === "string" ? logoUrl : ""}
+                onValueChange={(value) =>
+                  setValue("logoUrl", value || null, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              />
+            </FieldShell>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeAndReset}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting || !isValid}>
+                {isSubmitting ? "Saving…" : "Save changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        );
+      }}
     </UrlDialog>
   );
 }
@@ -283,7 +316,7 @@ export function BrandManager({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="flex flex-1 flex-col gap-4">
       <ResourceToolbar
         search={search}
         onSearchChange={setSearch}
@@ -292,7 +325,7 @@ export function BrandManager({
         onCreate={canCreate ? () => createDialog.open() : undefined}
       />
       {visible.length ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {visible.map((brand) => (
             <Card key={brand.id} size="sm">
               <CardHeader>
@@ -333,11 +366,30 @@ export function BrandManager({
           ))}
         </div>
       ) : (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            No brands match your search.
-          </CardContent>
-        </Card>
+        <AdminEmptyState
+          icon={search ? SearchX : Tags}
+          title={search ? "No matching brands" : "No brands yet"}
+          description={
+            search
+              ? "Try another name or slug, or clear the search to see every brand."
+              : "Create the first brand so customers can browse products by manufacturer."
+          }
+          action={
+            search ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSearch("")}
+              >
+                Clear search
+              </Button>
+            ) : canCreate ? (
+              <Button type="button" onClick={() => createDialog.open()}>
+                New brand
+              </Button>
+            ) : undefined
+          }
+        />
       )}
       <CreateBrandDialog onDone={() => setSearch("")} />
       <EditBrandDialog brand={selected} onDone={() => setSearch("")} />

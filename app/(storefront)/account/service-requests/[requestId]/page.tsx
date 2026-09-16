@@ -24,7 +24,7 @@ export default async function ServiceRequestDetailPage({
     notFound();
   }
   return (
-    <main className="page-shell section-space">
+    <div className="page-shell section-space">
       <Button
         variant="ghost"
         nativeButton={false}
@@ -75,7 +75,7 @@ export default async function ServiceRequestDetailPage({
           />
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }
 function Detail({

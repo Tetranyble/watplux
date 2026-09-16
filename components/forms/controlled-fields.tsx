@@ -334,7 +334,8 @@ export function ControlledCheckbox<T extends FieldValues>({
   description,
   className,
   disabled,
-}: BaseControlledProps<T>) {
+  compact = false,
+}: BaseControlledProps<T> & { compact?: boolean }) {
   const { field, fieldState } = useController({ control, name });
   const id = String(name).replace(/\./g, "-");
   return (
@@ -344,7 +345,12 @@ export function ControlledCheckbox<T extends FieldValues>({
       error={fieldState.error?.message}
       className={className}
     >
-      <div className="flex items-start gap-2.5 rounded-lg border bg-card p-3">
+      <div
+        className={cn(
+          "flex gap-2.5 rounded-lg border bg-card",
+          compact ? "h-8 items-center px-2.5" : "items-start p-3",
+        )}
+      >
         <Checkbox
           id={id}
           checked={Boolean(field.value)}

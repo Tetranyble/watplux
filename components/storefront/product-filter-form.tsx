@@ -1,8 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RotateCcw, Search } from "lucide-react";
+import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -12,8 +13,25 @@ import {
   ControlledSearchSelect,
   ControlledSelect,
 } from "@/components/forms/controlled-fields";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 import type {
   CatalogBrand,
   CatalogCategory,
@@ -81,33 +99,54 @@ export function ProductFilterForm({
   categories,
   brands,
   values,
+  className,
+  showHeader = true,
+  onNavigate,
 }: {
   categories: CatalogCategory[];
   brands: CatalogBrand[];
   values: ProductFilterValues;
+  className?: string;
+  showHeader?: boolean;
+  onNavigate?: () => void;
 }) {
   const router = useRouter();
-  const defaults: FormValues = {
-    search: values.search ?? "",
-    category: values.category ?? "all",
-    brand: values.brand ?? "all",
-    minPrice: values.minPrice ?? "",
-    maxPrice: values.maxPrice ?? "",
-    powerMin: values.powerMin ?? "",
-    powerMax: values.powerMax ?? "",
-    voltage: values.voltage ?? "",
-    phase:
-      values.phase === "SINGLE" || values.phase === "THREE"
-        ? values.phase
-        : "any",
-    inStock: values.inStock === "true",
-    sort:
-      values.sort === "featured" ||
-      values.sort === "price_asc" ||
-      values.sort === "price_desc"
-        ? values.sort
-        : "newest",
-  };
+  const defaults = useMemo<FormValues>(
+    () => ({
+      search: values.search ?? "",
+      category: values.category ?? "all",
+      brand: values.brand ?? "all",
+      minPrice: values.minPrice ?? "",
+      maxPrice: values.maxPrice ?? "",
+      powerMin: values.powerMin ?? "",
+      powerMax: values.powerMax ?? "",
+      voltage: values.voltage ?? "",
+      phase:
+        values.phase === "SINGLE" || values.phase === "THREE"
+          ? values.phase
+          : "any",
+      inStock: values.inStock === "true",
+      sort:
+        values.sort === "featured" ||
+        values.sort === "price_asc" ||
+        values.sort === "price_desc"
+          ? values.sort
+          : "newest",
+    }),
+    [
+      values.brand,
+      values.category,
+      values.inStock,
+      values.maxPrice,
+      values.minPrice,
+      values.phase,
+      values.powerMax,
+      values.powerMin,
+      values.search,
+      values.sort,
+      values.voltage,
+    ],
+  );
   const {
     control,
     handleSubmit,
@@ -119,6 +158,14 @@ export function ProductFilterForm({
     reValidateMode: "onChange",
     defaultValues: defaults,
   });
+
+  // The query string is the committed filter state. App Router can preserve
+  // this client component across Back/Forward navigation, so RHF's one-time
+  // `defaultValues` are not enough: resync whenever the server supplies values
+  // parsed from a new URL.
+  useEffect(() => {
+    reset(defaults);
+  }, [defaults, reset]);
 
   const submit = handleSubmit((next) => {
     const params = new URLSearchParams();
@@ -140,6 +187,7 @@ export function ProductFilterForm({
     router.push(params.size ? `/products?${params.toString()}` : "/products", {
       scroll: false,
     });
+    onNavigate?.();
   });
 
   function clear() {
@@ -158,12 +206,21 @@ export function ProductFilterForm({
     };
     reset(clean);
     router.push("/products", { scroll: false });
+    onNavigate?.();
   }
 
+  const hasActiveFilters = countActiveFilters(values) > 0;
+
   return (
-    <Card size="sm">
-      <CardContent className="space-y-4 pt-0">
-        <form onSubmit={submit} className="space-y-4">
+    <form onSubmit={submit} noValidate>
+      <Card size="sm" className={cn("gap-0 shadow-none", className)}>
+        {showHeader ? (
+          <CardHeader className="border-b pb-4">
+            <CardTitle>Filters</CardTitle>
+            <CardDescription>Refine the equipment shown.</CardDescription>
+          </CardHeader>
+        ) : null}
+        <CardContent className="space-y-5 py-5">
           <ControlledInput
             control={control}
             name="search"
@@ -197,34 +254,40 @@ export function ProductFilterForm({
             clearResult="value"
             placeholder="All brands"
           />
-          <div className="grid grid-cols-2 gap-3">
-            <ControlledInput
-              control={control}
-              name="minPrice"
-              label="Min price (₦)"
-              inputMode="numeric"
-            />
-            <ControlledInput
-              control={control}
-              name="maxPrice"
-              label="Max price (₦)"
-              inputMode="numeric"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <ControlledInput
-              control={control}
-              name="powerMin"
-              label="Min power (W)"
-              inputMode="numeric"
-            />
-            <ControlledInput
-              control={control}
-              name="powerMax"
-              label="Max power (W)"
-              inputMode="numeric"
-            />
-          </div>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Price range (₦)</legend>
+            <div className="grid grid-cols-2 gap-3">
+              <ControlledInput
+                control={control}
+                name="minPrice"
+                label="Minimum"
+                inputMode="numeric"
+              />
+              <ControlledInput
+                control={control}
+                name="maxPrice"
+                label="Maximum"
+                inputMode="numeric"
+              />
+            </div>
+          </fieldset>
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Power range (W)</legend>
+            <div className="grid grid-cols-2 gap-3">
+              <ControlledInput
+                control={control}
+                name="powerMin"
+                label="Minimum"
+                inputMode="numeric"
+              />
+              <ControlledInput
+                control={control}
+                name="powerMax"
+                label="Maximum"
+                inputMode="numeric"
+              />
+            </div>
+          </fieldset>
           <ControlledInput
             control={control}
             name="voltage"
@@ -259,18 +322,89 @@ export function ProductFilterForm({
               { value: "price_desc", label: "Price: high to low" },
             ]}
           />
-          <div className="grid gap-2">
-            <Button type="submit" disabled={!isValid}>
-              <Search className="size-4" />
-              Apply filters
-            </Button>
+        </CardContent>
+        <CardFooter className="grid gap-2 border-t pt-4">
+          <Button type="submit" disabled={!isValid} className="w-full">
+            <Search className="size-4" />
+            Apply filters
+          </Button>
+          {hasActiveFilters ? (
             <Button type="button" variant="outline" onClick={clear}>
               <RotateCcw className="size-4" />
               Clear filters
             </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          ) : null}
+        </CardFooter>
+      </Card>
+    </form>
+  );
+}
+
+function countActiveFilters(values: ProductFilterValues) {
+  return [
+    values.search,
+    values.category && values.category !== "all" ? values.category : "",
+    values.brand && values.brand !== "all" ? values.brand : "",
+    values.minPrice,
+    values.maxPrice,
+    values.powerMin,
+    values.powerMax,
+    values.voltage,
+    values.phase && values.phase !== "any" ? values.phase : "",
+    values.inStock === "true" ? "inStock" : "",
+  ].filter(Boolean).length;
+}
+
+export function ProductFilterDrawer({
+  categories,
+  brands,
+  values,
+}: {
+  categories: CatalogCategory[];
+  brands: CatalogBrand[];
+  values: ProductFilterValues;
+}) {
+  const [open, setOpen] = useState(false);
+  const activeCount = countActiveFilters(values);
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger
+        render={
+          <Button
+            variant="outline"
+            className="md:hidden"
+            aria-label="Filter products"
+          />
+        }
+      >
+        <SlidersHorizontal aria-hidden="true" />
+        Filters
+        {activeCount > 0 ? (
+          <Badge variant="secondary">{activeCount}</Badge>
+        ) : null}
+      </SheetTrigger>
+      <SheetContent
+        side="right"
+        className="w-[min(92vw,24rem)] gap-0 bg-background text-foreground"
+      >
+        <SheetHeader className="border-b pr-12">
+          <SheetTitle>Filter products</SheetTitle>
+          <SheetDescription>
+            Narrow the catalog by equipment details and availability.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
+          <ProductFilterForm
+            categories={categories}
+            brands={brands}
+            values={values}
+            showHeader={false}
+            className="border-0 bg-transparent shadow-none"
+            onNavigate={() => setOpen(false)}
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

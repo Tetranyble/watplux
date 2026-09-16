@@ -13,6 +13,7 @@ import {
   logoutAction,
   logoutAllAction,
 } from "@/app/(storefront)/account/actions";
+import { AvatarUpload } from "@/app/(storefront)/account/avatar-upload";
 import { ChangePasswordForm } from "@/app/(storefront)/account/change-password-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,11 +40,11 @@ export default async function AccountPage() {
   const safeUser = toSafeUser(user);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
+    <div className="page-shell py-10 lg:py-14">
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Badge variant="outline" className="mb-3">
-            Customer account
+            Your account
           </Badge>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             Welcome back, {safeUser.name.split(" ")[0] || safeUser.name}
@@ -73,6 +74,13 @@ export default async function AccountPage() {
               </div>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <AvatarUpload
+                  name={safeUser.name}
+                  email={safeUser.email}
+                  image={safeUser.image}
+                />
+              </div>
               <div className="rounded-lg border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Name
@@ -194,6 +202,6 @@ export default async function AccountPage() {
           </Card>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

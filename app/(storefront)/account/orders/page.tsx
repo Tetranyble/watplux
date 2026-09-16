@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import { ShoppingBag } from "lucide-react";
 
 import { OrderStatusBadge } from "@/components/storefront/order-status-badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -33,19 +36,23 @@ export default async function OrdersPage() {
 
   if (page.items.length === 0) {
     return (
-      <div className="mx-auto flex max-w-4xl flex-col items-center gap-4 px-4 py-24 text-center">
-        <h1 className="text-2xl font-semibold">
-          You haven&apos;t placed an order yet
-        </h1>
-        <Link href="/products" className="text-primary underline">
-          Browse products
-        </Link>
+      <div className="page-shell flex flex-1">
+        <EmptyState
+          icon={ShoppingBag}
+          title="You haven’t placed an order yet"
+          description="Your purchases and delivery progress will appear here after checkout."
+          action={
+            <Button nativeButton={false} render={<Link href="/products" />}>
+              Browse products
+            </Button>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="page-shell py-8 sm:py-10">
       <h1 className="mb-6 text-2xl font-semibold">Your orders</h1>
       <div className="overflow-x-auto rounded-lg border">
         <Table>

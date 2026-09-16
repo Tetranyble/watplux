@@ -65,20 +65,22 @@ export function UrlDialog({
       open={dialog.isOpen}
       onOpenChange={(open) => !open && dialog.close()}
     >
-      <DialogContent
-        className={cn(
-          "max-h-[min(88vh,760px)] overflow-y-auto sm:max-w-xl",
-          className,
-        )}
-      >
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          {description ? (
-            <DialogDescription>{description}</DialogDescription>
-          ) : null}
-        </DialogHeader>
-        {children(dialog.close)}
-      </DialogContent>
+      {dialog.isOpen ? (
+        <DialogContent
+          className={cn(
+            "max-h-[min(88vh,760px)] overflow-y-auto sm:max-w-xl",
+            className,
+          )}
+        >
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            {description ? (
+              <DialogDescription>{description}</DialogDescription>
+            ) : null}
+          </DialogHeader>
+          {children(dialog.close)}
+        </DialogContent>
+      ) : null}
     </Dialog>
   );
 }

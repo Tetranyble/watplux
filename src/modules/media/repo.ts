@@ -46,19 +46,28 @@ export async function findMediaAssetById(id: string) {
   return db.mediaAsset.findUnique({ where: { id } });
 }
 
+export async function findMediaAssetByPublicUrl(publicUrl: string) {
+  return db.mediaAsset.findFirst({ where: { publicUrl } });
+}
+
 export async function listMediaAssets(input: {
   cursor?: string;
   limit: number;
 }) {
   const decoded = decodeCursor(input.cursor);
-  const where: Prisma.MediaAssetWhereInput = decoded
-    ? {
-        OR: [
-          { createdAt: { lt: new Date(decoded.createdAt) } },
-          { createdAt: new Date(decoded.createdAt), id: { lt: decoded.id } },
-        ],
-      }
-    : {};
+  const where: Prisma.MediaAssetWhereInput = {
+    // Account avatars are managed by their owners and must not leak into the
+    // reusable catalog picker.
+    storageKey: { startsWith: "catalog/" },
+    ...(decoded
+      ? {
+          OR: [
+            { createdAt: { lt: new Date(decoded.createdAt) } },
+            { createdAt: new Date(decoded.createdAt), id: { lt: decoded.id } },
+          ],
+        }
+      : {}),
+  };
 
   const rows = await db.mediaAsset.findMany({
     where,
@@ -78,16 +87,18 @@ export async function listMediaAssets(input: {
 }
 
 export async function countMediaUsage(publicUrl: string) {
-  const [productImages, categories, brands] = await Promise.all([
+  const [productImages, categories, brands, users] = await Promise.all([
     db.productImage.count({ where: { url: publicUrl } }),
     db.category.count({ where: { imageUrl: publicUrl } }),
     db.brand.count({ where: { logoUrl: publicUrl } }),
+    db.user.count({ where: { image: publicUrl } }),
   ]);
   return {
     productImages,
     categories,
     brands,
-    total: productImages + categories + brands,
+    users,
+    total: productImages + categories + brands + users,
   };
 }
 

@@ -17,6 +17,7 @@ import {
   getCachedProductListing,
 } from "@/app/_data/catalog";
 import { ProductGrid } from "@/components/storefront/product-grid";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { env } from "@/lib/env";
@@ -91,7 +92,7 @@ async function CategoryTeasers() {
                 </span>
                 <p className="mt-1 font-semibold">{category.name}</p>
               </div>
-              <ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary" />
+              <ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary-emphasis" />
             </Link>
           ))}
         </div>
@@ -107,10 +108,13 @@ export default function HomePage() {
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_85%_15%,color-mix(in_srgb,var(--brand-sun)_22%,transparent),transparent_30%),radial-gradient(circle_at_10%_10%,color-mix(in_srgb,var(--primary)_14%,transparent),transparent_32%)]" />
         <div className="page-shell grid min-h-[620px] items-center gap-12 py-16 lg:grid-cols-[1.05fr_.95fr] lg:py-24">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border bg-background/80 px-3 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm backdrop-blur">
+            <Badge
+              variant="outline"
+              className="h-auto gap-2 bg-background/80 px-3 py-1.5 font-semibold text-muted-foreground shadow-sm backdrop-blur"
+            >
               <Sparkles className="size-3.5 text-brand-sun" />
               Practical solar for real homes and businesses
-            </div>
+            </Badge>
             <h1 className="mt-6 text-4xl font-black tracking-[-0.04em] sm:text-5xl lg:text-6xl">
               Reliable energy starts with the right system.
             </h1>
@@ -142,7 +146,8 @@ export default function HomePage() {
                 "Support before and after purchase",
               ].map((item) => (
                 <span key={item} className="inline-flex items-center gap-2">
-                  <CheckCircle2 className="size-4 text-primary" /> {item}
+                  <CheckCircle2 className="size-4 text-primary-emphasis" />{" "}
+                  {item}
                 </span>
               ))}
             </div>
@@ -183,7 +188,7 @@ export default function HomePage() {
                       key={number}
                       className="grid grid-cols-[auto_1fr] gap-4 rounded-xl bg-muted/60 p-4"
                     >
-                      <span className="font-mono text-xs font-bold text-primary">
+                      <span className="font-mono text-xs font-bold text-primary-emphasis">
                         {number}
                       </span>
                       <div>
@@ -205,7 +210,7 @@ export default function HomePage() {
         <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
           {TRUST_SIGNALS.map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-3 text-sm">
-              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary-emphasis">
                 <Icon className="size-4" aria-hidden="true" />
               </span>
               <span className="font-medium">{label}</span>

@@ -16,13 +16,13 @@ export function SiteFooter({ currentYear }: { currentYear: number }) {
           <p className="font-semibold text-foreground">Shop</p>
           <Link
             href="/products"
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-primary-emphasis"
           >
             All products
           </Link>
           <Link
             href="/cart"
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-primary-emphasis"
           >
             Cart
           </Link>
@@ -31,13 +31,13 @@ export function SiteFooter({ currentYear }: { currentYear: number }) {
           <p className="font-semibold text-foreground">Services</p>
           <Link
             href="/consultation"
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-primary-emphasis"
           >
             Solar consultation
           </Link>
           <Link
             href="/installation"
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-primary-emphasis"
           >
             Installation
           </Link>
@@ -46,19 +46,19 @@ export function SiteFooter({ currentYear }: { currentYear: number }) {
           <p className="font-semibold text-foreground">Get help</p>
           <Link
             href="/consultation"
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-primary-emphasis"
           >
             Plan a system
           </Link>
           <Link
             href="/installation"
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-primary-emphasis"
           >
             Request installation
           </Link>
           <Link
             href="/account/service-requests"
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-primary-emphasis"
           >
             Track a request
           </Link>
@@ -69,7 +69,23 @@ export function SiteFooter({ currentYear }: { currentYear: number }) {
           <p>
             &copy; {currentYear} {siteConfig.name}. All rights reserved.
           </p>
-          <p>Reliable energy, designed around real needs.</p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:justify-end">
+            <p>Reliable energy, designed around real needs.</p>
+            <span aria-hidden="true" className="hidden sm:inline">
+              ·
+            </span>
+            <p>
+              Designed and developed by{" "}
+              <a
+                href="https://tetranyble.com"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-foreground underline-offset-4 transition-colors hover:text-primary-emphasis hover:underline"
+              >
+                Tetranyble Labs Ltd
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

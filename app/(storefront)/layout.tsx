@@ -48,8 +48,15 @@ export default async function StorefrontLayout({
             <AccountNavArea />
           </Suspense>
         }
+        mobileAccountSlot={
+          <Suspense
+            fallback={<div className="h-28 animate-pulse bg-muted/50" />}
+          >
+            <AccountNavArea variant="mobile" />
+          </Suspense>
+        }
       />
-      <main id="main-content" tabIndex={-1} className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col">
         {children}
       </main>
       <SiteFooter currentYear={currentYear} />

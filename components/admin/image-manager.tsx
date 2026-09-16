@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   addProductImageSchema,
   updateProductImageSchema,
@@ -437,9 +438,12 @@ export function ImageManager({
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No product images yet.
-        </div>
+        <EmptyState
+          className="min-h-40 py-8"
+          icon={ImagePlus}
+          title="No product images yet"
+          description="Upload or attach the first image for this product."
+        />
       )}
       <UrlDialog
         dialogKey="image-add-url"

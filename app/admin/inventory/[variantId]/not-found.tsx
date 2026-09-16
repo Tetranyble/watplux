@@ -1,15 +1,20 @@
 import Link from "next/link";
+import { PackageSearch } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function AdminInventoryVariantNotFound() {
   return (
-    <div className="flex flex-col items-center gap-4 py-24 text-center">
-      <h1 className="text-2xl font-semibold">Invalid variant</h1>
-      <p className="text-muted-foreground">That variant ID isn&apos;t valid.</p>
-      <Button nativeButton={false} render={<Link href="/admin/inventory" />}>
-        Back to inventory
-      </Button>
-    </div>
+    <EmptyState
+      icon={PackageSearch}
+      title="Invalid variant"
+      description="That variant ID isn’t valid or no longer exists."
+      action={
+        <Button nativeButton={false} render={<Link href="/admin/inventory" />}>
+          Back to inventory
+        </Button>
+      }
+    />
   );
 }

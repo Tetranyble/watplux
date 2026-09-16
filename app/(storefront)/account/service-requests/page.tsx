@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ClipboardList } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getSessionUser } from "@/lib/session";
 import { listMyServiceRequests } from "@/src/modules/service-request/use-cases/list-my-service-requests";
 
@@ -14,7 +16,7 @@ export default async function MyServiceRequestsPage() {
   if (!actor) redirect("/login?next=/account/service-requests");
   const page = await listMyServiceRequests(actor, { limit: 50 });
   return (
-    <main className="page-shell section-space">
+    <div className="page-shell flex flex-1 flex-col py-10 sm:py-12 lg:py-14">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Badge variant="outline" className="mb-3">
@@ -40,13 +42,31 @@ export default async function MyServiceRequestsPage() {
           </Button>
         </div>
       </div>
-      <div className="mt-8 grid gap-4">
+      <div className="mt-8 flex flex-1 flex-col gap-4">
         {page.items.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-muted-foreground">
-              No service requests yet.
-            </CardContent>
-          </Card>
+          <EmptyState
+            className="min-h-80"
+            icon={ClipboardList}
+            title="No service requests yet"
+            description="Tell us what you need and track every update here from submission through completion."
+            action={
+              <div className="flex w-full max-w-sm flex-col-reverse gap-2 sm:flex-row sm:justify-center">
+                <Button
+                  variant="outline"
+                  nativeButton={false}
+                  render={<Link href="/consultation" />}
+                >
+                  New consultation
+                </Button>
+                <Button
+                  nativeButton={false}
+                  render={<Link href="/installation" />}
+                >
+                  Request installation
+                </Button>
+              </div>
+            }
+          />
         ) : (
           page.items.map((item) => (
             <Link
@@ -71,6 +91,6 @@ export default async function MyServiceRequestsPage() {
           ))
         )}
       </div>
-    </main>
+    </div>
   );
 }

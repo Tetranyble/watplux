@@ -27,7 +27,7 @@ export function ProductFilterForm({
           label: "Search",
           kind: "search",
           placeholder: "Product, brand, category or SKU",
-          className: "sm:col-span-2",
+          className: "sm:col-span-2 xl:col-span-3",
         },
         {
           name: "status",
@@ -41,8 +41,6 @@ export function ProductFilterForm({
         },
         { name: "includeDeleted", label: "Include deleted", kind: "checkbox" },
       ]}
-      createHref="/admin/catalog/products/new"
-      createLabel="New product"
     />
   );
 }

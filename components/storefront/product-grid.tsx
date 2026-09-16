@@ -1,18 +1,31 @@
+import { PackageSearch, type LucideIcon } from "lucide-react";
+
 import { ProductCard } from "@/components/storefront/product-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { ProductSummary } from "@/src/modules/catalog/types";
 
 export function ProductGrid({
   products,
-  emptyMessage = "No products found.",
+  emptyTitle = "No products found",
+  emptyMessage = "Products will appear here when they become available.",
+  emptyAction,
+  emptyIcon: EmptyIcon = PackageSearch,
 }: {
   products: ProductSummary[];
+  emptyTitle?: string;
   emptyMessage?: string;
+  emptyAction?: React.ReactNode;
+  emptyIcon?: LucideIcon;
 }) {
   if (products.length === 0) {
     return (
-      <p className="py-12 text-center text-sm text-muted-foreground">
-        {emptyMessage}
-      </p>
+      <EmptyState
+        className="min-h-80"
+        icon={EmptyIcon}
+        title={emptyTitle}
+        description={emptyMessage}
+        action={emptyAction}
+      />
     );
   }
 

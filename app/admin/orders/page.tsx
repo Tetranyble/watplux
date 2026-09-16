@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { SearchX, ShoppingBag } from "lucide-react";
 
+import { AdminEmptyState } from "@/components/admin/admin-empty-state";
 import { OrderFilterForm } from "@/components/admin/order-filter-form";
 import { OrderStatusBadge } from "@/components/storefront/order-status-badge";
 import { Button } from "@/components/ui/button";
@@ -108,9 +110,16 @@ export default async function AdminOrdersPage({
   if (page.nextCursor) {
     nextPageParams.set("cursor", page.nextCursor);
   }
+  const hasFilters = Boolean(
+    filters.status ||
+    filters.dateFrom ||
+    filters.dateTo ||
+    filters.orderNumber ||
+    filters.customerEmail,
+  );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <h1 className="text-2xl font-semibold">Orders</h1>
 
       <OrderFilterForm
@@ -124,9 +133,24 @@ export default async function AdminOrdersPage({
       />
 
       {page.items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No orders match these filters.
-        </p>
+        <AdminEmptyState
+          icon={hasFilters ? SearchX : ShoppingBag}
+          title={hasFilters ? "No matching orders" : "No orders yet"}
+          description={
+            hasFilters
+              ? "Adjust or clear the filters to see more orders."
+              : "Customer orders will appear here after checkout."
+          }
+          action={
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={<Link href={hasFilters ? "/admin/orders" : "/"} />}
+            >
+              {hasFilters ? "Clear filters" : "View storefront"}
+            </Button>
+          }
+        />
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <Table>

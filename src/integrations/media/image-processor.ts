@@ -3,6 +3,7 @@ import sharp from "sharp";
 
 const OUTPUT_MIME = "image/webp";
 const MAX_DIMENSION = 3200;
+const AVATAR_DIMENSION = 512;
 
 export interface ProcessedImage {
   body: Buffer;
@@ -33,6 +34,35 @@ export async function processCatalogImage(
       withoutEnlargement: true,
     })
     .webp({ quality: 84, effort: 5 });
+
+  const { data, info } = await pipeline.toBuffer({ resolveWithObject: true });
+  if (!info.width || !info.height)
+    throw new Error("Could not determine image dimensions.");
+  return {
+    body: data,
+    mimeType: OUTPUT_MIME,
+    extension: "webp",
+    width: info.width,
+    height: info.height,
+    checksumSha256: createHash("sha256").update(data).digest("hex"),
+  };
+}
+
+/** Produces a predictable square avatar and strips source metadata. */
+export async function processAvatarImage(
+  input: Buffer,
+): Promise<ProcessedImage> {
+  const pipeline = sharp(input, {
+    failOn: "warning",
+    limitInputPixels: 64_000_000,
+  })
+    .rotate()
+    .resize(AVATAR_DIMENSION, AVATAR_DIMENSION, {
+      fit: "cover",
+      position: "attention",
+      withoutEnlargement: false,
+    })
+    .webp({ quality: 82, effort: 5 });
 
   const { data, info } = await pipeline.toBuffer({ resolveWithObject: true });
   if (!info.width || !info.height)

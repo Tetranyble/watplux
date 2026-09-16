@@ -35,6 +35,7 @@ export const getSessionUser = cache(
       id: user.id,
       email: user.email,
       name: user.name,
+      image: user.image,
       status: user.status,
       permissions: new Set(permissionKeys),
     };

@@ -65,3 +65,26 @@ export class ConflictError extends AppError {
 export function isAppError(error: unknown): error is AppError {
   return error instanceof AppError;
 }
+
+/** Cache Components can serialize an error across a React cache boundary,
+ * preserving its public `name`/`code` while dropping its prototype. Route
+ * presentation must therefore not rely on `instanceof` alone when mapping a
+ * deliberate domain error to a framework not-found/forbidden state. */
+function matchesAppError(
+  error: unknown,
+  code: string,
+  name: string,
+): error is AppError {
+  if (error instanceof AppError) return error.code === code;
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { code?: unknown; name?: unknown };
+  return candidate.code === code || candidate.name === name;
+}
+
+export function isNotFoundError(error: unknown): error is NotFoundError {
+  return matchesAppError(error, "NOT_FOUND", "NotFoundError");
+}
+
+export function isForbiddenError(error: unknown): error is ForbiddenError {
+  return matchesAppError(error, "FORBIDDEN", "ForbiddenError");
+}

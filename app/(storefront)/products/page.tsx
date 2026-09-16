@@ -1,12 +1,17 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { PackageOpen, SearchX } from "lucide-react";
 
 import {
   getCachedBrands,
   getCachedCategoryTree,
   getStorefrontProductListing,
 } from "@/app/_data/catalog";
-import { ProductFilterForm } from "@/components/storefront/product-filter-form";
+import {
+  ProductFilterDrawer,
+  ProductFilterForm,
+  type ProductFilterValues,
+} from "@/components/storefront/product-filter-form";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { Button } from "@/components/ui/button";
 import { env } from "@/lib/env";
@@ -129,46 +134,125 @@ export default async function ProductsPage({
     nextPageParams.set("cursor", page.nextCursor);
   }
 
+  const filterValues: ProductFilterValues = {
+    category: categorySlug,
+    brand: brandSlug,
+    search,
+    minPrice: get("minPrice"),
+    maxPrice: get("maxPrice"),
+    powerMin: get("powerMin"),
+    powerMax: get("powerMax"),
+    voltage: get("voltage"),
+    phase: phaseParam,
+    inStock: get("inStock"),
+    sort: sortParam,
+  };
+  const hasFilters = Boolean(
+    search?.trim() ||
+    (categorySlug && categorySlug !== "all") ||
+    (brandSlug && brandSlug !== "all") ||
+    minPriceNaira !== undefined ||
+    maxPriceNaira !== undefined ||
+    powerMin !== undefined ||
+    powerMax !== undefined ||
+    voltage !== undefined ||
+    phase ||
+    inStockOnly,
+  );
+
   return (
-    <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-8 md:grid-cols-[16rem_1fr]">
-      <aside>
-        <h2 className="mb-4 text-sm font-semibold">Filters</h2>
-        <ProductFilterForm
+    <div className="page-shell flex flex-1 flex-col py-8 sm:py-10">
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Shop dependable power solutions
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            Compare panels, inverters, batteries and accessories selected for
+            homes, businesses and backup-energy projects.
+          </p>
+          {page.items.length > 0 ? (
+            <p className="mt-1 text-sm text-muted-foreground md:hidden">
+              {page.items.length}
+              {page.nextCursor ? "+" : ""} products shown
+            </p>
+          ) : null}
+        </div>
+        <ProductFilterDrawer
           categories={categories}
           brands={brands}
-          values={{
-            category: categorySlug,
-            brand: brandSlug,
-            search,
-            minPrice: get("minPrice"),
-            maxPrice: get("maxPrice"),
-            powerMin: get("powerMin"),
-            powerMax: get("powerMax"),
-            voltage: get("voltage"),
-            phase: phaseParam,
-            inStock: get("inStock"),
-            sort: sortParam,
-          }}
+          values={filterValues}
         />
-      </aside>
+      </header>
 
-      <div>
-        <h1 className="mb-6 text-2xl font-semibold">Shop</h1>
-        <ProductGrid
-          products={page.items}
-          emptyMessage="No products match your filters. Try clearing some filters."
-        />
-        {page.nextCursor ? (
-          <div className="mt-8 flex justify-center">
-            <Button
-              variant="outline"
-              nativeButton={false}
-              render={<Link href={`/products?${nextPageParams.toString()}`} />}
-            >
-              Load more
-            </Button>
-          </div>
-        ) : null}
+      <div className="mt-6 grid flex-1 gap-8 md:grid-cols-[17rem_minmax(0,1fr)] lg:gap-10">
+        <aside className="hidden self-start md:sticky md:top-20 md:block">
+          <ProductFilterForm
+            categories={categories}
+            brands={brands}
+            values={filterValues}
+          />
+        </aside>
+
+        <section className="flex min-w-0 flex-col" aria-label="Product results">
+          {page.items.length > 0 ? (
+            <div className="mb-4 hidden min-h-8 items-center justify-between gap-4 md:flex">
+              <p className="text-sm text-muted-foreground">
+                {page.items.length}
+                {page.nextCursor ? "+" : ""} products shown
+              </p>
+              {hasFilters ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  nativeButton={false}
+                  render={<Link href="/products" />}
+                >
+                  Clear all filters
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+
+          <ProductGrid
+            products={page.items}
+            emptyIcon={hasFilters ? SearchX : PackageOpen}
+            emptyTitle={
+              hasFilters
+                ? "No matching products"
+                : "Our catalog is being prepared"
+            }
+            emptyMessage={
+              hasFilters
+                ? "No products match the selected filters. Adjust or clear them to explore more equipment."
+                : "We’re preparing products for online purchase. Our team can still help you choose the right equipment for your project."
+            }
+            emptyAction={
+              <Button
+                variant={hasFilters ? "outline" : "default"}
+                nativeButton={false}
+                render={
+                  <Link href={hasFilters ? "/products" : "/consultation"} />
+                }
+              >
+                {hasFilters ? "Clear filters" : "Get product advice"}
+              </Button>
+            }
+          />
+          {page.nextCursor ? (
+            <div className="mt-8 flex justify-center">
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={
+                  <Link href={`/products?${nextPageParams.toString()}`} />
+                }
+              >
+                View more products
+              </Button>
+            </div>
+          ) : null}
+        </section>
       </div>
     </div>
   );

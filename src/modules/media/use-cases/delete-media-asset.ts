@@ -16,7 +16,7 @@ export async function deleteMediaAsset(
   const usage = await mediaRepo.countMediaUsage(asset.publicUrl);
   if (usage.total > 0) {
     throw new ConflictError(
-      "This image is still used by a product, category, or brand. Remove those references before deleting the stored asset.",
+      "This image is still in use. Remove its product, category, brand, or profile reference before deleting the stored asset.",
     );
   }
 

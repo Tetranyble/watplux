@@ -10,7 +10,7 @@ export default function PaymentResultLoading() {
       aria-live="polite"
     >
       <Loader2
-        className="size-8 animate-spin text-primary"
+        className="size-8 animate-spin text-primary-emphasis"
         aria-hidden="true"
       />
       <h1 className="text-2xl font-semibold">Confirming your payment…</h1>

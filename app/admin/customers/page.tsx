@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { SearchX, UsersRound } from "lucide-react";
 
+import { AdminEmptyState } from "@/components/admin/admin-empty-state";
 import { CustomerFilterForm } from "@/components/admin/customer-filter-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,11 +43,12 @@ export default async function CustomersPage({
   if (one("q")) next.set("q", one("q")!);
   if (status) next.set("status", status);
   if (page.nextCursor) next.set("cursor", page.nextCursor);
+  const hasFilters = Boolean(one("q")?.trim() || status);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div>
-        <p className="text-sm font-medium text-primary">People</p>
+        <p className="text-sm font-medium text-primary-emphasis">People</p>
         <h1 className="text-2xl font-semibold tracking-tight">
           Customers & staff
         </h1>
@@ -54,57 +57,77 @@ export default async function CustomersPage({
         </p>
       </div>
       <CustomerFilterForm query={one("q")} status={status} />
-      <div className="overflow-x-auto rounded-2xl border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Customer</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Roles</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {page.items.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
-                  <div className="font-medium">{user.name}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {user.email}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      user.status === "ACTIVE" ? "default" : "destructive"
-                    }
-                  >
-                    {user.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {user.roles.join(", ") || "—"}
-                </TableCell>
-                <TableCell>{formatDate(user.createdAt)}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    nativeButton={false}
-                    render={<Link href={`/admin/customers/${user.id}`} />}
-                  >
-                    Manage
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
       {page.items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No matching users.</p>
-      ) : null}
+        <AdminEmptyState
+          icon={hasFilters ? SearchX : UsersRound}
+          title={hasFilters ? "No matching accounts" : "No accounts yet"}
+          description={
+            hasFilters
+              ? "Adjust or clear the filters to see more customers and staff."
+              : "Customer and staff accounts will appear here when they are created."
+          }
+          action={
+            hasFilters ? (
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/admin/customers" />}
+              >
+                Clear filters
+              </Button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Roles</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {page.items.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    <div className="font-medium">{user.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {user.email}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        user.status === "ACTIVE" ? "default" : "destructive"
+                      }
+                    >
+                      {user.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {user.roles.join(", ") || "—"}
+                  </TableCell>
+                  <TableCell>{formatDate(user.createdAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      nativeButton={false}
+                      render={<Link href={`/admin/customers/${user.id}`} />}
+                    >
+                      Manage
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
       {page.nextCursor ? (
         <div className="flex justify-center">
           <Button

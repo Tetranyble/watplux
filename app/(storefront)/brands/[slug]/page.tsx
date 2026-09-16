@@ -1,13 +1,16 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { Tag } from "lucide-react";
 
 import {
   getCachedBrandBySlug,
   getCachedProductListing,
 } from "@/app/_data/catalog";
 import { ProductGrid } from "@/components/storefront/product-grid";
+import { Button } from "@/components/ui/button";
 import { env } from "@/lib/env";
-import { NotFoundError } from "@/lib/errors";
+import { isNotFoundError } from "@/lib/errors";
 
 // See app/products/[slug]/page.tsx for why this is `false`.
 export const instant = false;
@@ -16,7 +19,7 @@ async function loadBrand(slug: string) {
   try {
     return await getCachedBrandBySlug(slug);
   } catch (error) {
-    if (error instanceof NotFoundError) return null;
+    if (isNotFoundError(error)) return null;
     throw error;
   }
 }
@@ -63,17 +66,36 @@ export default async function BrandPage({
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-semibold">{brand.name}</h1>
+    <div className="page-shell flex flex-1 flex-col py-10 sm:py-12 lg:py-14">
+      <p className="eyebrow">Product brand</p>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+        {brand.name}
+      </h1>
       {brand.description ? (
         <p className="mt-2 max-w-2xl text-muted-foreground">
           {brand.description}
         </p>
       ) : null}
-      <div className="mt-8">
+      <div className="mt-8 flex flex-1 flex-col">
         <ProductGrid
           products={page.items}
-          emptyMessage="No products from this brand yet."
+          emptyIcon={Tag}
+          emptyTitle={`No ${brand.name} products yet`}
+          emptyMessage="This brand has no available products right now. Explore the full catalog or ask our team for a suitable alternative."
+          emptyAction={
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/consultation" />}
+              >
+                Find an alternative
+              </Button>
+              <Button nativeButton={false} render={<Link href="/products" />}>
+                Browse all products
+              </Button>
+            </div>
+          }
         />
       </div>
     </div>

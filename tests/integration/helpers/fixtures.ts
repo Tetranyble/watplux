@@ -42,6 +42,7 @@ export async function createTestUser(
     id: persisted.id,
     email: persisted.email,
     name: persisted.name,
+    image: persisted.image,
     status: persisted.status,
     permissions: new Set(permissionKeys),
   };
@@ -76,6 +77,7 @@ export async function resolveTestUser(
       id: persisted.id,
       email: persisted.email,
       name: persisted.name,
+      image: persisted.image,
       status: persisted.status,
       permissions: new Set(permissionKeys),
     },

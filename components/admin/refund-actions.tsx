@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "@/components/ui/toast";
 import { z } from "zod";
@@ -51,6 +51,9 @@ export function RequestRefundForm({
     reValidateMode: "onChange",
     defaultValues: { reason: undefined, amountMinor: undefined },
   });
+  useEffect(() => {
+    if (!dialog.isOpen) reset();
+  }, [dialog.isOpen, reset]);
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => dialog.open()}>
@@ -61,58 +64,63 @@ export function RequestRefundForm({
         title="Request refund"
         description="Leave the amount blank to refund the full remaining refundable balance."
       >
-        {(close) => (
-          <form
-            className="grid gap-4"
-            noValidate
-            onSubmit={handleSubmit(async (values) => {
-              try {
-                await postMutation(
-                  `/api/admin/payments/${paymentAttemptId}/refunds`,
-                  values,
-                );
-                toast.success("Refund requested.");
-                reset();
-                close();
-                router.refresh();
-              } catch (error) {
-                toast.error(
-                  error instanceof Error
-                    ? error.message
-                    : "Could not request a refund.",
-                );
-              }
-            })}
-          >
-            <ControlledInput
-              control={control}
-              name="amountMinor"
-              label="Amount (minor units)"
-              description="Optional. For NGN, 250000 means ₦2,500."
-              type="number"
-              min="1"
-              step="1"
-              valueAsNumber
-              emptyAsUndefined
-            />
-            <ControlledTextarea
-              control={control}
-              name="reason"
-              label="Reason"
-              rows={3}
-              maxLength={2000}
-              emptyAsUndefined
-            />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={close}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting || !isValid}>
-                {isSubmitting ? "Requesting…" : "Request refund"}
-              </Button>
-            </DialogFooter>
-          </form>
-        )}
+        {(close) => {
+          const closeAndReset = () => {
+            reset();
+            close();
+          };
+          return (
+            <form
+              className="grid gap-4"
+              noValidate
+              onSubmit={handleSubmit(async (values) => {
+                try {
+                  await postMutation(
+                    `/api/admin/payments/${paymentAttemptId}/refunds`,
+                    values,
+                  );
+                  toast.success("Refund requested.");
+                  closeAndReset();
+                  router.refresh();
+                } catch (error) {
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : "Could not request a refund.",
+                  );
+                }
+              })}
+            >
+              <ControlledInput
+                control={control}
+                name="amountMinor"
+                label="Amount (minor units)"
+                description="Optional. For NGN, 250000 means ₦2,500."
+                type="number"
+                min="1"
+                step="1"
+                valueAsNumber
+                emptyAsUndefined
+              />
+              <ControlledTextarea
+                control={control}
+                name="reason"
+                label="Reason"
+                rows={3}
+                maxLength={2000}
+                emptyAsUndefined
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={closeAndReset}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting || !isValid}>
+                  {isSubmitting ? "Requesting…" : "Request refund"}
+                </Button>
+              </DialogFooter>
+            </form>
+          );
+        }}
       </UrlDialog>
     </>
   );

@@ -8,7 +8,7 @@ import { ProductLifecycleActions } from "@/components/admin/product-lifecycle-ac
 import { SpecificationManager } from "@/components/admin/specification-manager";
 import { VariantManager } from "@/components/admin/variant-manager";
 import { Badge } from "@/components/ui/badge";
-import { NotFoundError } from "@/lib/errors";
+import { isNotFoundError } from "@/lib/errors";
 import { getSessionUser } from "@/lib/session";
 import {
   PERMISSION_PRODUCTS_CREATE,
@@ -59,7 +59,7 @@ export default async function AdminProductDetailPage({
   try {
     product = await getProductForAdmin(actor, parsedProductId.data);
   } catch (error) {
-    if (error instanceof NotFoundError) {
+    if (isNotFoundError(error)) {
       notFound();
     }
     throw error;
@@ -75,7 +75,7 @@ export default async function AdminProductDetailPage({
   const canUpdate = actor.permissions.has(PERMISSION_PRODUCTS_UPDATE);
 
   return (
-    <div className="flex max-w-4xl flex-col gap-8">
+    <div className="flex min-w-0 flex-1 flex-col gap-8">
       <CatalogSubNav active="/admin/catalog/products" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { ReceiptText, SearchX } from "lucide-react";
 
+import { AdminEmptyState } from "@/components/admin/admin-empty-state";
 import { RefundFilterForm } from "@/components/admin/refund-filter-form";
 import { CancelRefundButton } from "@/components/admin/refund-actions";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +84,7 @@ export default async function AdminRefundsPage({
   if (page.nextCursor) nextPageParams.set("cursor", page.nextCursor);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Refunds</h1>
         <Link
@@ -96,9 +98,28 @@ export default async function AdminRefundsPage({
       <RefundFilterForm status={get("status")} />
 
       {page.items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No refunds match these filters.
-        </p>
+        <AdminEmptyState
+          icon={status ? SearchX : ReceiptText}
+          title={status ? "No matching refunds" : "No refunds yet"}
+          description={
+            status
+              ? "Clear the status filter to see refunds in every state."
+              : "Refund requests and their processing status will appear here."
+          }
+          action={
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={
+                <Link
+                  href={status ? "/admin/payments/refunds" : "/admin/payments"}
+                />
+              }
+            >
+              {status ? "Clear filter" : "Reconciliation overview"}
+            </Button>
+          }
+        />
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <Table>

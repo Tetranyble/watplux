@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { ShoppingCart } from "lucide-react";
 
 import { CartList } from "@/components/storefront/cart-list";
 import { CartSummary } from "@/components/storefront/cart-summary";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { resolveCartActor } from "@/lib/cart-actor";
 import { getActiveCart } from "@/src/modules/cart/use-cases/get-active-cart";
 
@@ -21,20 +23,23 @@ export default async function CartPage() {
 
   if (!cart || cart.items.length === 0) {
     return (
-      <div className="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 py-24 text-center">
-        <h1 className="text-2xl font-semibold">Your cart is empty</h1>
-        <p className="text-muted-foreground">
-          Browse our catalog to find solar equipment for your home or business.
-        </p>
-        <Button nativeButton={false} render={<Link href="/products" />}>
-          Browse products
-        </Button>
+      <div className="page-shell flex flex-1">
+        <EmptyState
+          icon={ShoppingCart}
+          title="Your cart is empty"
+          description="Browse our catalog to find dependable solar equipment for your home or business."
+          action={
+            <Button nativeButton={false} render={<Link href="/products" />}>
+              Browse products
+            </Button>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="page-shell py-8 sm:py-10">
       <h1 className="mb-6 text-2xl font-semibold">Your cart</h1>
       <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
         <CartList items={cart.items} />

@@ -7,7 +7,7 @@ import { RoleManagementForm } from "@/components/admin/role-management-form";
 import { UserSecurityActions } from "@/components/admin/user-security-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { NotFoundError } from "@/lib/errors";
+import { isNotFoundError } from "@/lib/errors";
 import { formatDate } from "@/lib/format";
 import { getSessionUser } from "@/lib/session";
 import { getUserForAdmin } from "@/src/modules/auth/use-cases/get-user-for-admin";
@@ -31,12 +31,12 @@ export default async function AdminCustomerDetailPage({
   try {
     profile = await getUserForAdmin(actor, parsed.data);
   } catch (error) {
-    if (error instanceof NotFoundError) notFound();
+    if (isNotFoundError(error)) notFound();
     throw error;
   }
 
   return (
-    <div className="flex max-w-4xl flex-col gap-7">
+    <div className="flex min-w-0 flex-1 flex-col gap-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Button

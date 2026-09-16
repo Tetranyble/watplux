@@ -13,6 +13,7 @@ import { UrlDialog, useUrlDialog } from "@/components/router/url-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { upsertProductSpecificationSchema } from "@/src/modules/catalog/schema";
 import type { CatalogSpecification } from "@/src/modules/catalog/types";
 
@@ -241,9 +242,12 @@ export function SpecificationManager({
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No specifications yet.
-        </div>
+        <EmptyState
+          className="min-h-40 py-8"
+          icon={Plus}
+          title="No specifications yet"
+          description="Add structured product details such as capacity, voltage or dimensions."
+        />
       )}
 
       <UrlDialog

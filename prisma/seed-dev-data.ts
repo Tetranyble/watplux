@@ -57,6 +57,7 @@ async function getAdminActor(): Promise<AuthenticatedUser> {
     id: user.id,
     email: user.email,
     name: user.name,
+    image: user.image,
     status: user.status,
     permissions: new Set(PERMISSIONS),
   };
@@ -79,6 +80,7 @@ async function getOrCreateCustomerActor(): Promise<AuthenticatedUser> {
     id: user.id,
     email: user.email,
     name: user.name,
+    image: user.image,
     status: user.status,
     permissions: new Set(),
   };

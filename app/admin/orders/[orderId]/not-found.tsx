@@ -1,15 +1,20 @@
 import Link from "next/link";
+import { ReceiptText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function AdminOrderNotFound() {
   return (
-    <div className="flex flex-col items-center gap-4 py-24 text-center">
-      <h1 className="text-2xl font-semibold">Order not found</h1>
-      <p className="text-muted-foreground">No order exists with that ID.</p>
-      <Button nativeButton={false} render={<Link href="/admin/orders" />}>
-        Back to orders
-      </Button>
-    </div>
+    <EmptyState
+      icon={ReceiptText}
+      title="Order not found"
+      description="No order exists with that ID. It may have been removed."
+      action={
+        <Button nativeButton={false} render={<Link href="/admin/orders" />}>
+          Back to orders
+        </Button>
+      }
+    />
   );
 }

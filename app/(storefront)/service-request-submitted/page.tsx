@@ -12,10 +12,10 @@ export default async function ServiceRequestSubmittedPage({
 }) {
   const { id } = await searchParams;
   return (
-    <main className="page-shell section-space">
+    <div className="page-shell section-space">
       <div className="mx-auto max-w-xl surface-card p-8 text-center sm:p-10">
         <CheckCircle2
-          className="mx-auto size-12 text-primary"
+          className="mx-auto size-12 text-primary-emphasis"
           aria-hidden="true"
         />
         <h1 className="mt-5 text-3xl font-semibold tracking-tight">
@@ -39,6 +39,6 @@ export default async function ServiceRequestSubmittedPage({
           </Button>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

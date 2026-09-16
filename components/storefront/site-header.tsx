@@ -6,22 +6,36 @@ import { MobileNav, type NavLink } from "@/components/storefront/mobile-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_LINKS: NavLink[] = [
-  { href: "/products", label: "Shop" },
-  { href: "/consultation", label: "Consultation" },
-  { href: "/installation", label: "Installation" },
+  {
+    href: "/products",
+    label: "Shop",
+    description: "Browse solar equipment and essentials",
+  },
+  {
+    href: "/consultation",
+    label: "Consultation",
+    description: "Plan the right system for your needs",
+  },
+  {
+    href: "/installation",
+    label: "Installation",
+    description: "Request professional installation",
+  },
 ];
 
 export function SiteHeader({
   cartSlot,
   accountSlot,
+  mobileAccountSlot,
 }: {
   cartSlot: React.ReactNode;
   accountSlot: React.ReactNode;
+  mobileAccountSlot: React.ReactNode;
 }) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/92 backdrop-blur-xl supports-backdrop-filter:bg-background/78">
       <div className="page-shell flex h-16 items-center gap-4">
-        <MobileNav links={NAV_LINKS} accountSlot={accountSlot} />
+        <MobileNav links={NAV_LINKS} accountSlot={mobileAccountSlot} />
         <Link href="/" aria-label="Watplux home" className="shrink-0">
           <BrandLockup />
         </Link>

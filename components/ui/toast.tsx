@@ -61,13 +61,15 @@ function ToastIcon({ type }: { type?: string }) {
     );
   }
   if (type === "info") {
-    return <Info aria-hidden="true" className={cn(common, "text-primary")} />;
+    return (
+      <Info aria-hidden="true" className={cn(common, "text-primary-emphasis")} />
+    );
   }
   if (type === "loading") {
     return (
       <Loader2
         aria-hidden="true"
-        className={cn(common, "animate-spin text-primary")}
+        className={cn(common, "animate-spin text-primary-emphasis")}
       />
     );
   }

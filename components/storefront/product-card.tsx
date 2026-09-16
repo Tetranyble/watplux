@@ -10,7 +10,7 @@ export function ProductCard({ product }: { product: ProductSummary }) {
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-md"
+      className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-md"
     >
       <div className="relative aspect-[4/4.3] overflow-hidden bg-muted">
         {product.primaryImage ? (

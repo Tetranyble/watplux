@@ -1,18 +1,23 @@
 import Link from "next/link";
+import { PackageSearch } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default function AdminProductNotFound() {
   return (
-    <div className="flex flex-col items-center gap-4 py-24 text-center">
-      <h1 className="text-2xl font-semibold">Product not found</h1>
-      <p className="text-muted-foreground">No product exists with that ID.</p>
-      <Button
-        nativeButton={false}
-        render={<Link href="/admin/catalog/products" />}
-      >
-        Back to products
-      </Button>
-    </div>
+    <EmptyState
+      icon={PackageSearch}
+      title="Product not found"
+      description="No product exists with that ID. It may have been removed."
+      action={
+        <Button
+          nativeButton={false}
+          render={<Link href="/admin/catalog/products" />}
+        >
+          Back to products
+        </Button>
+      }
+    />
   );
 }

@@ -106,19 +106,9 @@ test.describe("admin: shell navigation and access control", () => {
       data: { email: customerEmail, password: PASSWORD },
     });
 
-    // This route participates in Cache Components/PPR — `redirect("/account")`
-    // fires from inside the dynamic (cookie-dependent) part of the render,
-    // so it surfaces as a `NEXT_REDIRECT` marker inside the streamed RSC
-    // payload rather than a top-level HTTP 307/Location header for a
-    // non-JS HTTP client (a real browser resolves this correctly via
-    // client-side navigation; verified manually against a running server —
-    // `res.url()`/`res.status()` cannot observe it here). Asserting on the
-    // embedded redirect instruction is the reliable, HTTP-client-visible
-    // proof that the layout's permission gate actually fired.
     const res = await request.get("/admin");
-    const body = await res.text();
-    expect(body).toContain("NEXT_REDIRECT");
-    expect(body).toContain("/account");
+    expect(new URL(res.url()).pathname).toBe("/account");
+    expect(await res.text()).not.toContain("Watplux Operations");
   });
 
   test("super_admin can load the dashboard", async ({ request }) => {

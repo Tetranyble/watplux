@@ -17,6 +17,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-emphasis: var(--primary-emphasis);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -52,118 +54,124 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --radius-sm: calc(var(--radius) * 0.65);
-  --radius-md: calc(var(--radius) * 0.82);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.35);
-  --radius-2xl: calc(var(--radius) * 1.75);
-  --radius-3xl: calc(var(--radius) * 2.15);
-  --radius-4xl: calc(var(--radius) * 2.55);
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 12px;
+  --radius-3xl: 16px;
+  --radius-4xl: 9999px;
+  --radius-control: var(--control-radius);
 }
 
 /*
  * Watplux design tokens
  * ---------------------
- * Deep solar-green is the interaction/brand anchor. Solar-gold is a
- * restrained energy accent, not the primary CTA color. This keeps long
- * commerce/admin sessions calm while still giving the product a memorable
- * solar identity. Semantic UI should consume primary/accent/success/warning;
- * brand-* tokens are reserved for brand moments and data visualisation.
+ * Solar yellow is the interaction and brand anchor. Dark ink provides the
+ * required contrast on yellow actions, while warm neutral surfaces keep the
+ * interface calm enough for long commerce and operations sessions. Green is
+ * reserved for success semantics rather than competing with the primary.
  */
 :root {
   color-scheme: light;
-  --background: #f8faf8;
-  --foreground: #122019;
+  --background: #faf9f5;
+  --foreground: #211d14;
   --card: #ffffff;
-  --card-foreground: #122019;
+  --card-foreground: #211d14;
   --popover: #ffffff;
-  --popover-foreground: #122019;
+  --popover-foreground: #211d14;
 
-  --primary: #0b6b4d;
-  --primary-foreground: #ffffff;
-  --secondary: #edf4f0;
-  --secondary-foreground: #173d30;
-  --muted: #f0f4f1;
-  --muted-foreground: #64736a;
-  --accent: #fff3cf;
-  --accent-foreground: #513a00;
+  --primary: #ffbe00;
+  --primary-foreground: #211800;
+  --primary-hover: #e5aa00;
+  --primary-emphasis: #765800;
+  --secondary: #f1ede3;
+  --secondary-foreground: #332d20;
+  --muted: #f4f1e9;
+  --muted-foreground: #6f685a;
+  --accent: #fff0b8;
+  --accent-foreground: #493600;
   --destructive: #c73636;
-  --border: #dce5df;
-  --input: #d6e1da;
-  --ring: #168263;
+  --border: #ded8ca;
+  --input: #d4ccbc;
+  --ring: #8a6500;
 
-  --brand-sun: #f5b700;
-  --brand-sun-foreground: #302300;
-  --brand-leaf: #0b6b4d;
-  --brand-ink: #0d241b;
-  --success: #15805f;
+  --brand-sun: #ffbe00;
+  --brand-sun-foreground: #211800;
+  --brand-leaf: #227a52;
+  --brand-ink: #211800;
+  --success: #18794e;
   --success-foreground: #ffffff;
-  --warning: #f5b700;
-  --warning-foreground: #302300;
+  --warning: #ffbe00;
+  --warning-foreground: #211800;
 
-  --chart-1: #0b6b4d;
-  --chart-2: #f5b700;
-  --chart-3: #2d7fb8;
-  --chart-4: #8764c7;
-  --chart-5: #d36d3f;
+  --chart-1: #ffbe00;
+  --chart-2: #227a52;
+  --chart-3: #347da8;
+  --chart-4: #7a61ad;
+  --chart-5: #c65f35;
 
-  --radius: 0.75rem;
+  --radius: 0.5rem;
+  --control-radius: 4px;
 
-  --sidebar: #f3f7f4;
-  --sidebar-foreground: #173228;
-  --sidebar-primary: #0b6b4d;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8f1ec;
-  --sidebar-accent-foreground: #143b2d;
-  --sidebar-border: #d8e3dc;
-  --sidebar-ring: #168263;
+  --sidebar: #f6f2e8;
+  --sidebar-foreground: #332d20;
+  --sidebar-primary: #ffbe00;
+  --sidebar-primary-foreground: #211800;
+  --sidebar-accent: #ebe4d4;
+  --sidebar-accent-foreground: #2c261b;
+  --sidebar-border: #dcd3c1;
+  --sidebar-ring: #8a6500;
 }
 
 .dark {
   color-scheme: dark;
-  --background: #0b1410;
-  --foreground: #eef6f1;
-  --card: #111d17;
-  --card-foreground: #eef6f1;
-  --popover: #111d17;
-  --popover-foreground: #eef6f1;
+  --background: #15130f;
+  --foreground: #f7f2e7;
+  --card: #1d1a14;
+  --card-foreground: #f7f2e7;
+  --popover: #1d1a14;
+  --popover-foreground: #f7f2e7;
 
-  --primary: #58c9a1;
-  --primary-foreground: #06281c;
-  --secondary: #182820;
-  --secondary-foreground: #e0eee6;
-  --muted: #17241d;
-  --muted-foreground: #9aada2;
+  --primary: #ffbe00;
+  --primary-foreground: #211800;
+  --primary-hover: #ffd052;
+  --primary-emphasis: #ffd76a;
+  --secondary: #2b271e;
+  --secondary-foreground: #f2ead9;
+  --muted: #26231c;
+  --muted-foreground: #b8af9d;
   --accent: #3b310d;
   --accent-foreground: #ffe6a1;
-  --destructive: #f07171;
-  --border: #26372e;
-  --input: #31463a;
-  --ring: #58c9a1;
+  --destructive: #f27a7a;
+  --border: #3c3629;
+  --input: #4a4232;
+  --ring: #ffd45b;
 
-  --brand-sun: #f6c63d;
-  --brand-sun-foreground: #2e2400;
-  --brand-leaf: #58c9a1;
-  --brand-ink: #e7f4ec;
-  --success: #58c9a1;
-  --success-foreground: #06281c;
-  --warning: #f6c63d;
-  --warning-foreground: #2e2400;
+  --brand-sun: #ffbe00;
+  --brand-sun-foreground: #211800;
+  --brand-leaf: #66c99a;
+  --brand-ink: #fff5d6;
+  --success: #62d09c;
+  --success-foreground: #08271b;
+  --warning: #ffbe00;
+  --warning-foreground: #211800;
 
-  --chart-1: #58c9a1;
-  --chart-2: #f6c63d;
+  --chart-1: #ffbe00;
+  --chart-2: #66c99a;
   --chart-3: #65afe1;
   --chart-4: #b79be8;
   --chart-5: #ee9b73;
 
-  --sidebar: #0e1914;
-  --sidebar-foreground: #e8f2ec;
-  --sidebar-primary: #58c9a1;
-  --sidebar-primary-foreground: #06281c;
-  --sidebar-accent: #17271f;
-  --sidebar-accent-foreground: #e8f2ec;
-  --sidebar-border: #24352c;
-  --sidebar-ring: #58c9a1;
+  --sidebar: #191711;
+  --sidebar-foreground: #f2ead9;
+  --sidebar-primary: #ffbe00;
+  --sidebar-primary-foreground: #211800;
+  --sidebar-accent: #2a261c;
+  --sidebar-accent-foreground: #f7f2e7;
+  --sidebar-border: #393327;
+  --sidebar-ring: #ffd45b;
 }
 
 @layer base {

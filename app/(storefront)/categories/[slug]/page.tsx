@@ -1,13 +1,16 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { Boxes } from "lucide-react";
 
 import {
   getCachedCategoryBySlug,
   getCachedProductListing,
 } from "@/app/_data/catalog";
 import { ProductGrid } from "@/components/storefront/product-grid";
+import { Button } from "@/components/ui/button";
 import { env } from "@/lib/env";
-import { NotFoundError } from "@/lib/errors";
+import { isNotFoundError } from "@/lib/errors";
 
 // See app/products/[slug]/page.tsx for why this is `false` (no
 // `generateStaticParams`, per-request slug lookup, matches the existing
@@ -18,7 +21,7 @@ async function loadCategory(slug: string) {
   try {
     return await getCachedCategoryBySlug(slug);
   } catch (error) {
-    if (error instanceof NotFoundError) return null;
+    if (isNotFoundError(error)) return null;
     throw error;
   }
 }
@@ -63,17 +66,36 @@ export default async function CategoryPage({
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-2xl font-semibold">{category.name}</h1>
+    <div className="page-shell flex flex-1 flex-col py-10 sm:py-12 lg:py-14">
+      <p className="eyebrow">Product category</p>
+      <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+        {category.name}
+      </h1>
       {category.description ? (
         <p className="mt-2 max-w-2xl text-muted-foreground">
           {category.description}
         </p>
       ) : null}
-      <div className="mt-8">
+      <div className="mt-8 flex flex-1 flex-col">
         <ProductGrid
           products={page.items}
-          emptyMessage="No products in this category yet."
+          emptyIcon={Boxes}
+          emptyTitle={`No ${category.name} products yet`}
+          emptyMessage="We’re still preparing this collection. Browse the full catalog or speak with our team for help finding the right equipment."
+          emptyAction={
+            <div className="flex flex-col-reverse gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/consultation" />}
+              >
+                Get product advice
+              </Button>
+              <Button nativeButton={false} render={<Link href="/products" />}>
+                Browse all products
+              </Button>
+            </div>
+          }
         />
       </div>
     </div>

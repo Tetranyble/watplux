@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Check, Copy, ImagePlus, Trash2, UploadCloud } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 
+import { AdminEmptyState } from "@/components/admin/admin-empty-state";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -129,7 +130,7 @@ export function MediaLibrary({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-1 flex-col gap-6">
       {canUpload ? (
         <div className="rounded-2xl border border-dashed bg-muted/20 p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -216,10 +217,23 @@ export function MediaLibrary({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed p-12 text-center text-muted-foreground">
-          <ImagePlus className="mx-auto mb-3 size-7" />
-          No media has been uploaded yet.
-        </div>
+        <AdminEmptyState
+          icon={ImagePlus}
+          title="No media yet"
+          description="Upload the first image to make it available across products, categories and brands."
+          action={
+            canUpload ? (
+              <Button
+                type="button"
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
+              >
+                <UploadCloud className="size-4" />
+                {uploading ? "Processing…" : "Upload images"}
+              </Button>
+            ) : undefined
+          }
+        />
       )}
       {nextCursor ? (
         <div className="flex justify-center">

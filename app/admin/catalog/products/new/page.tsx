@@ -43,7 +43,7 @@ export default async function NewProductPage() {
   const categories = flattenWithDepth(categoryTree);
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
+    <div className="flex min-w-0 flex-1 flex-col gap-6">
       <CatalogSubNav active="/admin/catalog/products" />
       <h1 className="text-2xl font-semibold">New product</h1>
       <ProductCreateForm categories={categories} brands={brands} />

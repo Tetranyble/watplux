@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { consultationCtaHref, installationCtaHref } from "@/lib/site-config";
 import { env } from "@/lib/env";
-import { NotFoundError } from "@/lib/errors";
+import { isNotFoundError } from "@/lib/errors";
 import { getAvailableQuantity } from "@/src/modules/inventory/use-cases/get-available-quantity";
 
 // No `generateStaticParams` — every slug is looked up per-request (the
@@ -35,7 +35,7 @@ async function loadProduct(slug: string) {
   try {
     return await getCachedProductBySlug(slug);
   } catch (error) {
-    if (error instanceof NotFoundError) return null;
+    if (isNotFoundError(error)) return null;
     throw error;
   }
 }
@@ -153,7 +153,7 @@ export default async function ProductPage({
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="page-shell py-8 sm:py-10">
       {/* `JSON.stringify` alone doesn't escape `<`, so an admin-entered
        * product name/description containing a literal `</script>` could
        * otherwise break out of this tag — `replace` closes that hole
@@ -218,13 +218,13 @@ export default async function ProductPage({
             <div className="flex flex-wrap gap-3">
               <Link
                 href={consultationCtaHref}
-                className="text-primary underline"
+                className="text-primary-emphasis underline"
               >
                 Book a consultation
               </Link>
               <Link
                 href={installationCtaHref}
-                className="text-primary underline"
+                className="text-primary-emphasis underline"
               >
                 Request installation
               </Link>

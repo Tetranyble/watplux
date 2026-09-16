@@ -8,6 +8,18 @@ Visible interactive controls must come from `components/ui/*` (the project's sha
 
 Native browser capabilities may still exist *inside* a shadcn wrapper (for example the file input rendered by `Input type="file"`).
 
+## Radius hierarchy
+
+Corner radius communicates component scale rather than varying by feature:
+
+- form controls and compact interactive items: 4px;
+- compact panels, alerts and table shells: 6px;
+- standard cards, dialogs, menus and toolbars: 8px;
+- prominent surfaces and large media containers: 12px;
+- pills and circular affordances: fully rounded.
+
+Use the shared `rounded-*` scale so these values remain centralized. Avoid arbitrary radius values in feature code.
+
 ## Forms
 
 Meaningful mutating forms use:

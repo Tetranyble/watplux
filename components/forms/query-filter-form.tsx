@@ -1,7 +1,6 @@
 "use client";
 
 import { Filter, RotateCcw, Search } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
@@ -12,7 +11,7 @@ import {
   type SelectOption,
 } from "@/components/forms/controlled-fields";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 type FilterValue = string | boolean;
@@ -41,15 +40,11 @@ export function QueryFilterForm({
   values,
   fields,
   basePath,
-  createHref,
-  createLabel,
   className,
 }: {
   values: FilterValues;
   fields: FilterField[];
   basePath?: string;
-  createHref?: string;
-  createLabel?: string;
   className?: string;
 }) {
   const router = useRouter();
@@ -96,56 +91,55 @@ export function QueryFilterForm({
   );
 
   return (
-    <Card size="sm" className={className}>
-      <CardContent
-        className={cn(
-          "grid gap-3 pt-0 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5",
-        )}
-      >
-        {fields.map((field) => {
-          if (field.kind === "select") {
+    <form onSubmit={handleSubmit(submit)} noValidate>
+      <Card size="sm" className={className}>
+        <CardContent className="grid gap-4 pt-0 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+          {fields.map((field) => {
+            if (field.kind === "select") {
+              return (
+                <ControlledSelect
+                  key={field.name}
+                  control={control}
+                  name={field.name}
+                  label={field.label}
+                  options={field.options}
+                  clearValue={field.allValue ?? "all"}
+                  clearLabel={field.allLabel ?? "All"}
+                  clearResult="value"
+                  className={field.className}
+                />
+              );
+            }
+            if (field.kind === "checkbox") {
+              return (
+                <ControlledCheckbox
+                  key={field.name}
+                  control={control}
+                  name={field.name}
+                  label={field.label}
+                  compact
+                  className={cn("self-end", field.className)}
+                />
+              );
+            }
             return (
-              <ControlledSelect
+              <ControlledInput
                 key={field.name}
                 control={control}
                 name={field.name}
                 label={field.label}
-                options={field.options}
-                clearValue={field.allValue ?? "all"}
-                clearLabel={field.allLabel ?? "All"}
-                clearResult="value"
+                type={field.kind ?? "text"}
+                placeholder={field.placeholder}
                 className={field.className}
               />
             );
-          }
-          if (field.kind === "checkbox") {
-            return (
-              <ControlledCheckbox
-                key={field.name}
-                control={control}
-                name={field.name}
-                label={field.label}
-                className={field.className}
-              />
-            );
-          }
-          return (
-            <ControlledInput
-              key={field.name}
-              control={control}
-              name={field.name}
-              label={field.label}
-              type={field.kind ?? "text"}
-              placeholder={field.placeholder}
-              className={field.className}
-            />
-          );
-        })}
-        <div className="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-full">
+          })}
+        </CardContent>
+        <CardFooter className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <Button
-            type="button"
-            onClick={handleSubmit(submit)}
+            type="submit"
             disabled={isSubmitting}
+            className="w-full sm:w-auto"
           >
             {fields.some((field) => field.kind === "search") ? (
               <Search className="size-4" />
@@ -155,22 +149,18 @@ export function QueryFilterForm({
             Apply filters
           </Button>
           {hasValues ? (
-            <Button type="button" variant="outline" onClick={clear}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={clear}
+              className="w-full sm:w-auto"
+            >
               <RotateCcw className="size-4" />
               Clear
             </Button>
           ) : null}
-          {createHref && createLabel ? (
-            <Button
-              nativeButton={false}
-              render={<Link href={createHref} />}
-              className="sm:ml-auto"
-            >
-              {createLabel}
-            </Button>
-          ) : null}
-        </div>
-      </CardContent>
-    </Card>
+        </CardFooter>
+      </Card>
+    </form>
   );
 }

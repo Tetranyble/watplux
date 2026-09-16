@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { CreditCard } from "lucide-react";
 
 import { RequestRefundForm } from "@/components/admin/refund-actions";
 import { OrderActions } from "@/components/storefront/order-actions";
 import { OrderStatusBadge } from "@/components/storefront/order-status-badge";
 import { Badge } from "@/components/ui/badge";
-import { NotFoundError } from "@/lib/errors";
+import { EmptyState } from "@/components/ui/empty-state";
+import { isNotFoundError } from "@/lib/errors";
 import { formatDate, formatMinorUnits } from "@/lib/format";
 import { getSessionUser } from "@/lib/session";
 import { PERMISSION_ORDERS_UPDATE } from "@/src/modules/order/constants";
@@ -55,7 +57,7 @@ export default async function AdminOrderDetailPage({
   try {
     order = await getOrderForAdmin(actor, parsedOrderId.data);
   } catch (error) {
-    if (error instanceof NotFoundError) {
+    if (isNotFoundError(error)) {
       notFound();
     }
     throw error;
@@ -72,7 +74,7 @@ export default async function AdminOrderDetailPage({
   const billingAddress = order.addresses.find((a) => a.type === "BILLING");
 
   return (
-    <div className="flex max-w-4xl flex-col gap-8">
+    <div className="flex min-w-0 flex-1 flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Order {order.orderNumber}</h1>
@@ -226,9 +228,12 @@ export default async function AdminOrderDetailPage({
             Payment attempts
           </h2>
           {paymentAttempts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No payment attempts yet.
-            </p>
+            <EmptyState
+              className="min-h-40 py-8"
+              icon={CreditCard}
+              title="No payment attempts yet"
+              description="Payment activity for this order will appear here."
+            />
           ) : (
             <ul className="flex flex-col gap-2">
               {paymentAttempts.map((attempt) => (

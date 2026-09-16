@@ -106,6 +106,33 @@ export async function deleteAllSessionsForUser(userId: bigint): Promise<void> {
   await db.session.deleteMany({ where: { userId } });
 }
 
+export async function setUserImage(params: {
+  userId: bigint;
+  image: string | null;
+  auditAction: "auth.avatar.updated" | "auth.avatar.removed";
+}): Promise<string | null> {
+  return db.$transaction(async (tx) => {
+    const current = await tx.user.findUniqueOrThrow({
+      where: { id: params.userId },
+      select: { image: true },
+    });
+    await tx.user.update({
+      where: { id: params.userId },
+      data: { image: params.image },
+    });
+    await tx.auditLog.create({
+      data: {
+        actorId: params.userId,
+        actorType: "USER",
+        action: params.auditAction,
+        entityType: "user",
+        entityId: params.userId,
+      },
+    });
+    return current.image;
+  });
+}
+
 export async function getUserPermissionKeys(userId: bigint): Promise<string[]> {
   const userRoles = await db.userRole.findMany({
     where: { userId },

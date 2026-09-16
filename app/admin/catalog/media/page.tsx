@@ -23,10 +23,10 @@ export default async function AdminMediaPage() {
   const canDelete = actor.permissions.has(PERMISSION_PRODUCTS_DELETE);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <CatalogSubNav active="/admin/catalog/media" />
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-emphasis">
           Catalog assets
         </p>
         <h1 className="mt-2 text-2xl font-semibold">Media library</h1>

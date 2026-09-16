@@ -27,9 +27,15 @@ export default async function AdminCategoriesPage() {
   const canUpdate = actor.permissions.has(PERMISSION_PRODUCTS_UPDATE);
 
   return (
-    <div className="flex max-w-3xl flex-col gap-6">
+    <div className="flex min-w-0 flex-1 flex-col gap-6">
       <CatalogSubNav active="/admin/catalog/categories" />
-      <h1 className="text-2xl font-semibold">Categories</h1>
+      <div>
+        <h1 className="text-2xl font-semibold">Categories</h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          Organize the catalog hierarchy and control which categories appear in
+          the storefront.
+        </p>
+      </div>
       <CategoryManager
         tree={tree}
         canCreate={canCreate}

@@ -7,6 +7,7 @@ export interface AuthenticatedUser {
   id: bigint;
   email: string;
   name: string;
+  image: string | null;
   status: "ACTIVE" | "SUSPENDED";
   /** Resolved via user_roles -> role_permissions -> permissions. */
   permissions: ReadonlySet<string>;
@@ -18,12 +19,19 @@ export interface SafeUser {
   id: string;
   email: string;
   name: string;
+  image: string | null;
 }
 
 export function toSafeUser(user: {
   id: bigint;
   email: string;
   name: string;
+  image: string | null;
 }): SafeUser {
-  return { id: user.id.toString(), email: user.email, name: user.name };
+  return {
+    id: user.id.toString(),
+    email: user.email,
+    name: user.name,
+    image: user.image ?? null,
+  };
 }

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Boxes, SearchX } from "lucide-react";
 
+import { AdminEmptyState } from "@/components/admin/admin-empty-state";
 import { InventoryFilterForm } from "@/components/admin/inventory-filter-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,15 +66,40 @@ export default async function AdminInventoryPage({
   if (page.nextCursor) nextPageParams.set("cursor", page.nextCursor);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <h1 className="text-2xl font-semibold">Inventory</h1>
 
       <InventoryFilterForm lowStockOnly={lowStockOnly} />
 
       {page.items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No inventory items match these filters.
-        </p>
+        <AdminEmptyState
+          icon={lowStockOnly ? SearchX : Boxes}
+          title={
+            lowStockOnly ? "No low-stock items" : "No inventory tracked yet"
+          }
+          description={
+            lowStockOnly
+              ? "Everything is above its low-stock threshold, or no thresholds have been configured."
+              : "Inventory appears here after stock is configured for a product variant."
+          }
+          action={
+            <Button
+              variant="outline"
+              nativeButton={false}
+              render={
+                <Link
+                  href={
+                    lowStockOnly
+                      ? "/admin/inventory"
+                      : "/admin/catalog/products"
+                  }
+                />
+              }
+            >
+              {lowStockOnly ? "Show all inventory" : "View products"}
+            </Button>
+          }
+        />
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <Table>

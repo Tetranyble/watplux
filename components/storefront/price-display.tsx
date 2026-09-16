@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { formatDiscountPercent, formatMinorUnits } from "@/lib/format";
 
 /**
@@ -35,9 +36,7 @@ export function PriceDisplay({
           <span className="text-sm text-muted-foreground line-through">
             {formatMinorUnits(compareAtPriceMinor, currency)}
           </span>
-          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-            -{discountPercent}%
-          </span>
+          <Badge variant="destructive">-{discountPercent}%</Badge>
         </>
       ) : null}
     </div>

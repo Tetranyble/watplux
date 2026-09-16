@@ -121,6 +121,7 @@ describe("inventory: authorization", () => {
       id: BigInt(999_999_999),
       email: "forged@example.test",
       name: "Forged Admin",
+      image: null,
       status: "ACTIVE" as const,
       permissions: new Set<string>(),
     };

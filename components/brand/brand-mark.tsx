@@ -1,5 +1,6 @@
-import { SunMedium, Zap } from "lucide-react";
+import Image from "next/image";
 
+import logo from "@/favicon/web-app-manifest-512x512.png";
 import { cn } from "@/lib/utils";
 
 export function BrandMark({ className }: { className?: string }) {
@@ -7,12 +8,11 @@ export function BrandMark({ className }: { className?: string }) {
     <span
       aria-hidden="true"
       className={cn(
-        "relative grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/15",
+        "relative block size-9 shrink-0 overflow-hidden rounded-lg bg-brand-sun",
         className,
       )}
     >
-      <SunMedium className="absolute size-5 opacity-45" />
-      <Zap className="relative size-4 fill-current" />
+      <Image src={logo} alt="" fill sizes="36px" className="object-cover" />
     </span>
   );
 }

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { CheckCircle2, CreditCard } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
   TableBody,
@@ -21,7 +23,14 @@ export const instant = false;
 
 function AttemptTable({ attempts }: { attempts: PaymentAttemptRecord[] }) {
   if (attempts.length === 0) {
-    return <p className="text-sm text-muted-foreground">None.</p>;
+    return (
+      <EmptyState
+        className="min-h-36 py-6"
+        icon={CreditCard}
+        title="No attempts to review"
+        description="No payment attempts currently match this reconciliation check."
+      />
+    );
   }
   return (
     <div className="overflow-x-auto rounded-lg border">
@@ -123,7 +132,10 @@ export default async function AdminPaymentsPage() {
           Stuck or failed webhook events
         </h2>
         {flags.stuckOrFailedWebhookEventIds.length === 0 ? (
-          <p className="text-sm text-muted-foreground">None.</p>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CheckCircle2 className="size-4 text-primary-emphasis" />
+            No stuck or failed webhook events.
+          </p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {flags.stuckOrFailedWebhookEventIds.map((id) => (
@@ -140,7 +152,10 @@ export default async function AdminPaymentsPage() {
           Stuck refunds
         </h2>
         {flags.stuckRefundIds.length === 0 ? (
-          <p className="text-sm text-muted-foreground">None.</p>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CheckCircle2 className="size-4 text-primary-emphasis" />
+            No stuck refunds.
+          </p>
         ) : (
           <ul className="flex flex-wrap gap-2">
             {flags.stuckRefundIds.map((id) => (

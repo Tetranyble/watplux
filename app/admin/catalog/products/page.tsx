@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { PackageOpen, Plus, SearchX } from "lucide-react";
 
+import { AdminEmptyState } from "@/components/admin/admin-empty-state";
 import { CatalogSubNav } from "@/components/admin/catalog-sub-nav";
 import { ProductFilterForm } from "@/components/admin/product-filter-form";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +20,7 @@ import { getSessionUser } from "@/lib/session";
 import type { ListProductsForAdminInput } from "@/src/modules/catalog/schema";
 import type { ProductSummary } from "@/src/modules/catalog/types";
 import { listProductsForAdmin } from "@/src/modules/catalog/use-cases/list-products-for-admin";
+import { PERMISSION_PRODUCTS_CREATE } from "@/src/modules/catalog/constants";
 
 export const metadata: Metadata = { title: "Products" };
 
@@ -77,18 +80,22 @@ export default async function AdminProductsPage({
   };
 
   const page = await listProductsForAdmin(actor, filters);
+  const canCreate = actor.permissions.has(PERMISSION_PRODUCTS_CREATE);
 
   const nextPageParams = new URLSearchParams();
   if (get("status")) nextPageParams.set("status", get("status")!);
   if (get("search")) nextPageParams.set("search", get("search")!);
   if (includeDeleted) nextPageParams.set("includeDeleted", "true");
   if (page.nextCursor) nextPageParams.set("cursor", page.nextCursor);
+  const hasFilters = Boolean(
+    get("status") || get("search")?.trim() || includeDeleted,
+  );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-1 flex-col gap-6">
       <CatalogSubNav active="/admin/catalog/products" />
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Products</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -96,6 +103,16 @@ export default async function AdminProductsPage({
             workspace.
           </p>
         </div>
+        {canCreate ? (
+          <Button
+            nativeButton={false}
+            render={<Link href="/admin/catalog/products/new" />}
+            className="w-full sm:w-auto"
+          >
+            <Plus className="size-4" />
+            New product
+          </Button>
+        ) : null}
       </div>
 
       <ProductFilterForm
@@ -107,9 +124,34 @@ export default async function AdminProductsPage({
       />
 
       {page.items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No products match these filters.
-        </p>
+        <AdminEmptyState
+          icon={hasFilters ? SearchX : PackageOpen}
+          title={hasFilters ? "No matching products" : "No products yet"}
+          description={
+            hasFilters
+              ? "Adjust or clear the filters to see more of the catalog."
+              : "Create the first product to start building the catalog."
+          }
+          action={
+            hasFilters || canCreate ? (
+              <Button
+                variant={hasFilters ? "outline" : "default"}
+                nativeButton={false}
+                render={
+                  <Link
+                    href={
+                      hasFilters
+                        ? "/admin/catalog/products"
+                        : "/admin/catalog/products/new"
+                    }
+                  />
+                }
+              >
+                {hasFilters ? "Clear filters" : "New product"}
+              </Button>
+            ) : undefined
+          }
+        />
       ) : (
         <div className="overflow-x-auto rounded-lg border">
           <Table>
