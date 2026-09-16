@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import type { ReactNode } from "react";
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
@@ -35,7 +36,9 @@ export const metadata: Metadata = {
  * URL is unchanged; only the physical file location and which layout
  * wraps it changed.
  */
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
   return (
     <html
       lang="en"

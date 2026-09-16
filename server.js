@@ -1,3 +1,7 @@
+"use strict";
+
+/* eslint-disable @typescript-eslint/no-require-imports -- cPanel startup is CommonJS and delegates to Next's generated standalone CommonJS server. */
+
 process.env.NODE_ENV = "production";
 
 const { existsSync } = require("node:fs");
