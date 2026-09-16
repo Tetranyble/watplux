@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "22.23.1"
+    "node": ">=22.23.1 <23"
   },
   "scripts": {
     "dev": "next dev",
@@ -27,11 +27,14 @@
     "test:release": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run test:integration && npm run test:e2e",
     "db:migrate:deploy": "prisma migrate deploy",
     "ops:preflight": "node scripts/production-preflight.mjs",
+    "ops:preflight:cpanel": "npm run ops:preflight && node scripts/cpanel-runtime-preflight.mjs",
     "ops:backup:mysql": "node scripts/backup-mysql.mjs",
     "audit:release": "node scripts/release-audit.mjs",
     "release:gate": "npm run audit:lockfile && npm run audit:ui && npm run audit:release && npm run test:release && npm run build",
     "audit:ui": "node scripts/ui-system-audit.mjs",
-    "audit:lockfile": "node scripts/check-lockfile-sync.mjs"
+    "audit:lockfile": "node scripts/check-lockfile-sync.mjs",
+    "package:cpanel": "bash scripts/package-cpanel.sh",
+    "build:cpanel": "bash scripts/build-cpanel-release.sh"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

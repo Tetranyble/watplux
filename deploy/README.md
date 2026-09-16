@@ -9,5 +9,7 @@ Production deploys an external managed MySQL database plus immutable application
 - `.env.worker.example` — least-privilege worker scheduler secret only.
 - `nginx/watplux.conf` — optional reverse-proxy reference; most importantly it overwrites `X-Real-IP` so Phase 15 rate limiting never trusts a client-supplied address.
 - `cron/webhook-worker.cron` — reference for platforms using system cron instead of the compose scheduler.
+- `CPANEL.md` — versioned standalone-runtime deployment for cPanel/Passenger hosting.
+- `.env.cpanel.example` — cPanel runtime-variable template; production still requires S3 and managed MySQL.
 
 Before a release, use the runbooks under `docs/operations/`. Prefer a platform-native load balancer/scheduler/secret manager over these reference files when available; preserve the same security and sequencing invariants.

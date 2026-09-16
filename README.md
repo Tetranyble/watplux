@@ -79,6 +79,11 @@ The production application uses the multi-stage `Dockerfile`:
 
 Production uses managed MySQL and S3-compatible media storage; the root `docker-compose.yml` remains local-development MySQL only. See `docs/PHASE_17_DEPLOYMENT_OPERATIONS_IMPLEMENTATION.md` and `docs/operations/RELEASE_RUNBOOK.md`.
 
+For Node.js hosting through cPanel, use the separate `npm run build:cpanel`
+packaging flow and the versioned-release procedure in
+[`deploy/CPANEL.md`](deploy/CPANEL.md). The existing `npm run build` and Docker
+release path are unchanged.
+
 Operational endpoints:
 
 - `GET /api/live` — process liveness, no dependency checks.

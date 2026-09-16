@@ -21,6 +21,7 @@
 
 # production
 /build
+/release
 
 # misc
 .DS_Store
@@ -47,4 +48,5 @@ next-env.d.ts
 /.storage/
 !deploy/.env.production.example
 /backups/
+!deploy/.env.cpanel.example
 !deploy/.env.worker.example
