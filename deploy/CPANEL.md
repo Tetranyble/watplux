@@ -50,7 +50,7 @@ npm run build:cpanel
 ```
 
 The command audits the source, migrates only the disposable build database,
-builds the standalone runtime, and creates:
+builds the standalone runtime with webpack, and creates:
 
 ```text
 release/cpanel/watplux-cpanel-<git-sha>.zip
@@ -59,7 +59,10 @@ release/cpanel/watplux-cpanel-<git-sha>.zip
 The packager refuses a dirty working tree. Runtime secrets and production data
 are never placed in the archive. The project-wide `npm run release:gate`
 remains mandatory on infrastructure with MySQL and browser-test support before
-a production GO.
+a production GO. The cPanel-only build deliberately uses webpack because the
+deployment installs Linux-native Prisma, Argon2, and Sharp packages after the
+archive is extracted; Turbopack's hashed external package aliases cannot be
+recreated by `npm ci`. The normal `npm run build` command remains unchanged.
 
 ## 3. Create a versioned release on cPanel
 

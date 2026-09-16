@@ -31,6 +31,18 @@ if [[ ! -f .next/standalone/server.js || ! -f .next/standalone/.next/BUILD_ID ]]
   exit 1
 fi
 
+# A Turbopack standalone build can refer to synthetic external packages such
+# as @prisma/client-<hash>. Those packages do not exist in the npm registry and
+# fail after deployment when native dependencies are installed on Linux.
+if LC_ALL=C grep -R -E -q \
+  --include='*.js' \
+  'require\("@prisma/client-[[:xdigit:]]{8,}"\)' \
+  .next/standalone/.next/server; then
+  echo "Refusing to package a Turbopack runtime with a hashed Prisma external."
+  echo "Run npm run build:cpanel so the cPanel-specific webpack build is used."
+  exit 1
+fi
+
 mkdir -p "$artifact_dir" "$stage_dir/app/runtime/.next"
 
 for file in package.json package-lock.json .nvmrc server.js tsconfig.json; do
