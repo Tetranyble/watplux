@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { ClipboardList, LogIn, LogOut, Package, User } from "lucide-react";
+import {
+  ClipboardList,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Package,
+  User,
+} from "lucide-react";
 
 import { logoutAction } from "@/app/(storefront)/account/actions";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -96,6 +103,17 @@ export async function AccountNavArea({
           </div>
         </div>
         <div className="grid gap-1">
+          {user.permissions.size > 0 ? (
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2"
+              nativeButton={false}
+              render={<Link href="/admin" />}
+            >
+              <LayoutDashboard aria-hidden="true" />
+              Admin dashboard
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             className="w-full justify-start gap-2"
@@ -155,17 +173,39 @@ export async function AccountNavArea({
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
+        {user.permissions.size > 0 ? (
+          <DropdownMenuItem
+            nativeButton={false}
+            render={<Link href="/admin" />}
+            className="gap-2"
+          >
+            <LayoutDashboard aria-hidden="true" />
+            Admin dashboard
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem
           nativeButton={false}
           render={<Link href="/account" />}
+          className="gap-2"
         >
+          <User aria-hidden="true" />
           Account
         </DropdownMenuItem>
         <DropdownMenuItem
           nativeButton={false}
           render={<Link href="/account/orders" />}
+          className="gap-2"
         >
+          <Package aria-hidden="true" />
           Orders
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          nativeButton={false}
+          render={<Link href="/account/service-requests" />}
+          className="gap-2"
+        >
+          <ClipboardList aria-hidden="true" />
+          Service requests
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
