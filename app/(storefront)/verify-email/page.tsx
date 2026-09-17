@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// The message varies with the `sent` query parameter. This small auth route
+// should render atomically rather than exposing a misleading static shell.
+export const instant = false;
+
 export default async function VerifyEmailPage({
   searchParams,
 }: {

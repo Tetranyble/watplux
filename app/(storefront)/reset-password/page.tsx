@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// The reset token and Better Auth error are request-specific and determine
+// whether the password form may be shown at all.
+export const instant = false;
+
 export default async function ResetPasswordPage({
   searchParams,
 }: {
