@@ -52,11 +52,14 @@ npm test
 echo "Migrating the disposable build database..."
 npm run db:migrate:deploy
 
+echo "Generating Prisma Client with cPanel Linux engine targets..."
+npm run db:generate
+
 echo "Building the standalone production runtime with webpack..."
-# Keep the regular `npm run build` path unchanged. The cPanel archive replaces
-# native modules with Linux-built copies from the application root, and
+# Keep the regular `npm run build` path unchanged. The cPanel packager stages
+# locked Linux x64 native modules into the standalone runtime, and
 # Turbopack's hashed external package aliases (for example
-# @prisma/client-<hash>) cannot be recreated by `npm ci` on the server.
+# @prisma/client-<hash>) are not portable.
 npx next build --webpack
 
 exec bash scripts/package-cpanel.sh

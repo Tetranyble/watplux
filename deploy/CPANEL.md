@@ -59,10 +59,10 @@ release/cpanel/watplux-cpanel-<git-sha>.zip
 The packager refuses a dirty working tree. Runtime secrets and production data
 are never placed in the archive. The project-wide `npm run release:gate`
 remains mandatory on infrastructure with MySQL and browser-test support before
-a production GO. The cPanel-only build deliberately uses webpack because the
-deployment installs Linux-native Prisma, Argon2, and Sharp packages after the
-archive is extracted; Turbopack's hashed external package aliases cannot be
-recreated by `npm ci`. The normal `npm run build` command remains unchanged.
+a production GO. The cPanel-only build deliberately uses webpack because
+Turbopack's hashed external package aliases are not portable. During packaging,
+locked Linux x64 Prisma, Argon2, Sharp, and libvips files are placed directly in
+the standalone runtime. The normal `npm run build` command remains unchanged.
 
 ## 3. Create a versioned release on cPanel
 
@@ -73,13 +73,15 @@ editing production files in place. Replace `CPANEL_USER` and `<git-sha>` below:
 mkdir -p /home/CPANEL_USER/watplux/releases/<git-sha>
 unzip watplux-cpanel-<git-sha>.zip -d /home/CPANEL_USER/watplux/releases/<git-sha>
 cd /home/CPANEL_USER/watplux/releases/<git-sha>
-npm ci --include=dev
+node scripts/prepare-cpanel-runtime.mjs
+node scripts/cpanel-runtime-preflight.mjs
 ```
 
-The install generates the Linux Prisma client and automatically links Prisma,
-Argon2, and Sharp from cPanel's application dependency directory into the
-packaged standalone runtime. If dependencies were installed with lifecycle
-scripts disabled, run `npm run prepare:cpanel:runtime` before preflight.
+The archive is self-contained for Namecheap/CloudLinux shared hosting. Its
+standalone runtime already contains Linux x64 Sharp, Argon2, Prisma Client, and
+the RHEL/OpenSSL Prisma engines. The web application does not depend on cPanel's
+separate Node virtual-environment package directory and does not require **Run
+NPM Install**.
 
 Always extract into a newly created, empty SHA-named directory. Do not unpack a
 new archive over an earlier `runtime/`; stale Turbopack chunks can survive a ZIP
@@ -93,10 +95,8 @@ test ! -f 'runtime/.next/server/chunks/[turbopack]_runtime.js'
 test ! -f 'runtime/.next/server/chunks/ssr/[turbopack]_runtime.js'
 ```
 
-The cPanel-side install is intentional. Sharp, Argon2, and Prisma contain
-native/platform-specific code and must be installed/generated on cPanel's
-Linux runtime. Do not run `npm run build` on cPanel; the production build is
-already in `runtime/`.
+Do not run `npm run build` on cPanel; the production build and its Linux-native
+runtime dependencies are already in `runtime/`.
 
 Create `/home/CPANEL_USER/watplux/shared/.env.production` from the packaged
 `.env.production.example`, fill every placeholder, set permission `600`, then
@@ -112,23 +112,26 @@ Better Auth, guest-order, and internal-worker secrets.
 
 ## 4. Validate and migrate before rollout
 
-Load the private runtime configuration in the terminal, run preflight, and run
-Prisma migrations exactly once before switching traffic:
+Load the private runtime configuration in the terminal and run configuration
+preflight before switching traffic:
 
 ```bash
 set -a
 source .env.production
 set +a
 npm run ops:preflight:cpanel
-npm run db:migrate:deploy
 ```
+
+Prisma migrations still run exactly once before rollout, but shared hosting may
+not permit installing the Prisma CLI. Run them from a trusted release machine
+that has the same committed code and an authenticated connection to production,
+or apply the reviewed migration SQL through the hosting database tool. Never
+add migrations to application startup.
 
 On the first deployment only, bootstrap structural RBAC data and the initial
-owner account:
-
-```bash
-npm run db:seed
-```
+owner account from the same trusted release machine used for migrations. The
+self-contained web archive intentionally does not include development tools
+such as `tsx` or the Prisma CLI, so do not run `npm run db:seed` on cPanel.
 
 After the first successful seed, remove `SEED_ADMIN_EMAIL`,
 `SEED_ADMIN_PASSWORD`, and `SEED_ADMIN_NAME` from the runtime environment.
@@ -191,7 +194,8 @@ webhook-worker run. Confirm `/api/ready` is healthy before accepting traffic.
 
 1. Confirm database backup/PITR and S3 versioning.
 2. Upload and extract the new SHA-named archive into a new release directory.
-3. Run `npm ci --include=dev`, preflight, and the new release's migrations.
+3. Run the packaged runtime preflight and apply the new release's migrations
+   through the approved one-shot migration path.
 4. Switch `current` to the new directory and restart the cPanel app.
 5. Run the verification checklist and monitor logs.
 

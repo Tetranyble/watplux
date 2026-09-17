@@ -74,16 +74,6 @@ if (hashedPrismaExternal) {
   );
 }
 
-for (const packageName of ["sharp", "@node-rs/argon2", "@prisma/client"]) {
-  try {
-    await import(packageName);
-  } catch (error) {
-    problems.push(
-      `${packageName} could not load on this host: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
-
 for (const runtimeDependency of [
   "runtime/node_modules/sharp",
   "runtime/node_modules/@node-rs/argon2",
@@ -92,14 +82,12 @@ for (const runtimeDependency of [
 ]) {
   try {
     const state = await lstat(runtimeDependency);
-    if (!state.isSymbolicLink()) {
-      problems.push(
-        `${runtimeDependency} is not linked to the cPanel-installed Linux dependency`,
-      );
+    if (!state.isDirectory() && !state.isSymbolicLink()) {
+      problems.push(`${runtimeDependency} is not a directory or link`);
     }
   } catch {
     problems.push(
-      `${runtimeDependency} is missing; run npm run prepare:cpanel:runtime after npm ci`,
+      `${runtimeDependency} is missing from the self-contained cPanel runtime`,
     );
   }
 }
@@ -115,9 +103,61 @@ for (const packageName of [
     runtimeRequire.resolve(packageName);
   } catch (error) {
     problems.push(
-      `${packageName} is not resolvable from runtime/server.js: ${error instanceof Error ? error.message : String(error)}. Run npm run prepare:cpanel:runtime after npm ci.`,
+      `${packageName} is not resolvable from the self-contained runtime/server.js: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+}
+
+try {
+  const generatedClientDirectory = path.resolve(
+    "runtime/node_modules/.prisma/client",
+  );
+  const generatedClientFiles = await readdir(generatedClientDirectory);
+  if (
+    !generatedClientFiles.some(
+      (file) =>
+        file.startsWith("libquery_engine-rhel-openssl-") &&
+        file.endsWith(".so.node"),
+    )
+  ) {
+    problems.push(
+      `${generatedClientDirectory} does not contain a Prisma RHEL/OpenSSL query engine`,
+    );
+  }
+} catch (error) {
+  problems.push(
+    `Prisma generated client could not be inspected: ${error instanceof Error ? error.message : String(error)}`,
+  );
+}
+
+try {
+  const sharp = runtimeRequire("sharp");
+  await sharp({
+    create: {
+      width: 1,
+      height: 1,
+      channels: 3,
+      background: "white",
+    },
+  })
+    .webp()
+    .toBuffer();
+} catch (error) {
+  problems.push(
+    `Sharp native runtime test failed: ${error instanceof Error ? error.message : String(error)}`,
+  );
+}
+
+try {
+  const argon2 = runtimeRequire("@node-rs/argon2");
+  const passwordHash = await argon2.hash("cpanel-runtime-preflight");
+  if (!(await argon2.verify(passwordHash, "cpanel-runtime-preflight"))) {
+    problems.push("Argon2 native runtime verification returned false");
+  }
+} catch (error) {
+  problems.push(
+    `Argon2 native runtime test failed: ${error instanceof Error ? error.message : String(error)}`,
+  );
 }
 
 if (problems.length) {

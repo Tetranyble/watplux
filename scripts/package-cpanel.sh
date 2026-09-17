@@ -14,7 +14,7 @@ trap cleanup EXIT
 
 cd "$project_root"
 
-for command in git rsync zip; do
+for command in git npm rsync zip; do
   if ! command -v "$command" >/dev/null 2>&1; then
     echo "$command is required to package the cPanel release."
     exit 1
@@ -59,18 +59,33 @@ cp deploy/.env.cpanel.example "$stage_dir/app/.env.production.example"
 cp -R prisma scripts src lib "$stage_dir/app/"
 
 # Native modules built on the developer machine are not portable to cPanel's
-# Linux host. They are intentionally resolved from the application-root
-# node_modules installed on cPanel with Node 22 instead.
+# Linux host. Exclude them from the traced macOS runtime; Linux x64 copies are
+# staged below so the shared host never has to install application packages.
 rsync -a \
   --exclude 'node_modules/sharp' \
   --exclude 'node_modules/@img' \
   --exclude 'node_modules/@node-rs/argon2*' \
-  --exclude 'node_modules/@prisma/client' \
   --exclude 'node_modules/@prisma/engines' \
-  --exclude 'node_modules/.prisma' \
+  --exclude 'node_modules/.prisma/client/libquery_engine-darwin*' \
   .next/standalone/ "$stage_dir/app/runtime/"
 rsync -a --delete public/ "$stage_dir/app/runtime/public/"
 rsync -a --delete .next/static/ "$stage_dir/app/runtime/.next/static/"
+
+# Prisma's generated client and every selected Linux query engine are copied
+# explicitly because its runtime engine selection is dynamic and cannot be
+# trusted to survive generic output-file tracing.
+mkdir -p \
+  "$stage_dir/app/runtime/node_modules/@prisma/client" \
+  "$stage_dir/app/runtime/node_modules/.prisma/client"
+rsync -a --delete \
+  node_modules/@prisma/client/ \
+  "$stage_dir/app/runtime/node_modules/@prisma/client/"
+rsync -a --delete \
+  --exclude 'libquery_engine-darwin*' \
+  node_modules/.prisma/client/ \
+  "$stage_dir/app/runtime/node_modules/.prisma/client/"
+
+bash scripts/stage-cpanel-linux-dependencies.sh "$stage_dir/app/runtime"
 
 printf '%s\n' "$release_sha" > "$stage_dir/app/RELEASE_SHA"
 
@@ -79,10 +94,16 @@ for required in \
   runtime/.next/BUILD_ID \
   runtime/.next/server/webpack-runtime.js \
   runtime/node_modules/next/dist/compiled/cookie/index.js \
+  runtime/node_modules/@prisma/client/index.js \
+  runtime/node_modules/.prisma/client/default.js \
+  runtime/node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node \
+  runtime/node_modules/@node-rs/argon2-linux-x64-gnu/argon2.linux-x64-gnu.node \
+  runtime/node_modules/@img/sharp-linux-x64/lib/sharp-linux-x64.node \
   runtime/public/web-app-manifest-192x192.png \
   package-lock.json \
   prisma/schema.prisma \
   scripts/prepare-cpanel-runtime.mjs \
+  scripts/stage-cpanel-linux-dependencies.sh \
   server.js; do
   if [[ ! -f "$stage_dir/app/$required" ]]; then
     echo "Packaged cPanel runtime is missing $required"
