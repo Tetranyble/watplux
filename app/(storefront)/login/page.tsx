@@ -3,7 +3,10 @@ import { BatteryCharging, ShieldCheck, ShoppingBag } from "lucide-react";
 
 import { LoginForm } from "@/app/(storefront)/login/login-form";
 
-export const metadata: Metadata = { title: "Sign in" };
+export const metadata: Metadata = {
+  title: "Sign in",
+  robots: { index: false, follow: false },
+};
 export const instant = false;
 
 export default async function LoginPage({

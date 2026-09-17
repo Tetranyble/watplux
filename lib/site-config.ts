@@ -6,8 +6,18 @@
  */
 export const siteConfig = {
   name: "Watplux",
+  title: "Watplux | Reliable solar power solutions",
   description:
     "Solar power equipment, system planning and installation services.",
+  locale: "en_NG",
+  keywords: [
+    "solar power Nigeria",
+    "solar panels",
+    "solar inverters",
+    "solar batteries",
+    "solar installation",
+    "backup power",
+  ],
   supportEmail: null as string | null,
   supportPhone: null as string | null,
 } as const;

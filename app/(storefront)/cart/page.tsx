@@ -11,6 +11,7 @@ import { getActiveCart } from "@/src/modules/cart/use-cases/get-active-cart";
 
 export const metadata: Metadata = {
   title: "Your cart",
+  robots: { index: false, follow: false },
 };
 
 // Session/guest-cookie-dependent — never cached, never statically

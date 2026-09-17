@@ -11,6 +11,7 @@ import { getSessionUser } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: { default: "Operations", template: "%s | Watplux Operations" },
+  robots: { index: false, follow: false },
 };
 export const instant = false;
 

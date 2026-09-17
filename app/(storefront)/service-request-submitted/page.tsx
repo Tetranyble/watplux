@@ -1,7 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+
+export const metadata: Metadata = {
+  title: "Request received",
+  robots: { index: false, follow: false },
+};
 
 export const instant = false;
 
