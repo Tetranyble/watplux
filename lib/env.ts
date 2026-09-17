@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+const emptyStringToUndefined = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+const optionalNonEmptyString = z.preprocess(
+  emptyStringToUndefined,
+  z.string().min(1).optional(),
+);
+const optionalEmail = z.preprocess(
+  emptyStringToUndefined,
+  z.string().email().optional(),
+);
+
 /**
  * Typed, validated environment configuration.
  *
@@ -98,11 +109,37 @@ const envSchema = z.object({
   // deployments must set this to the real public origin.
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
 
+  // Transactional email. Local/test environments default to a non-delivering
+  // log transport; production readiness requires SMTP credentials.
+  MAIL_MAILER: z.enum(["log", "smtp"]).default("log"),
+  MAIL_HOST: optionalNonEmptyString,
+  MAIL_PORT: z.coerce.number().int().positive().max(65535).default(587),
+  MAIL_SCHEME: z.enum(["tls", "ssl", "none"]).default("tls"),
+  MAIL_USERNAME: optionalNonEmptyString,
+  MAIL_PASSWORD: optionalNonEmptyString,
+  MAIL_FROM_ADDRESS: optionalEmail,
+  MAIL_FROM_NAME: z.string().min(1).default("Watplux"),
+
+  // Optional transactional SMS acknowledgement through Termii. The provider
+  // is disabled unless the base URL, API key and sender ID are all configured.
+  TERMII_BASE_URL: z.string().url().optional(),
+  TERMII_API_KEY: z.string().min(1).optional(),
+  TERMII_SENDER_ID: z.string().min(3).max(11).optional(),
+  TERMII_CHANNEL: z.enum(["dnd", "generic"]).default("dnd"),
+  TERMII_DEFAULT_COUNTRY_CODE: z
+    .string()
+    .regex(/^\d{1,4}$/)
+    .default("234"),
+
   // Media / object storage (Phase 14). Local disk is the development default;
   // production should use an S3-compatible object store and public CDN/base URL.
   MEDIA_STORAGE_PROVIDER: z.enum(["local", "s3"]).default("local"),
   MEDIA_UPLOAD_MAX_MB: z.coerce.number().int().positive().max(50).default(10),
   LOCAL_MEDIA_ROOT: z.string().min(1).default(".storage/media"),
+  CPANEL_PERSISTENT_LOCAL_MEDIA: z
+    .enum(["true", "false"])
+    .transform((value) => value === "true")
+    .default(false),
   S3_REGION: z.string().min(1).default("us-east-1"),
   S3_ENDPOINT: z.string().url().optional(),
   S3_BUCKET: z.string().min(1).optional(),

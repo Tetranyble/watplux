@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { pingDatabase } from "@/src/modules/health/repo";
@@ -26,8 +28,29 @@ export function productionConfigurationIssues(): string[] {
     issues.push("INTERNAL_WORKER_SECRET is required in production.");
   if (!env.GUEST_ORDER_TOKEN_SECRET)
     issues.push("GUEST_ORDER_TOKEN_SECRET is required in production.");
-  if (env.MEDIA_STORAGE_PROVIDER !== "s3")
-    issues.push("Production media storage must use the S3 provider.");
+  if (env.MAIL_MAILER !== "smtp")
+    issues.push("MAIL_MAILER must be smtp in production.");
+  if (!env.MAIL_HOST) issues.push("MAIL_HOST is required in production.");
+  if (!env.MAIL_FROM_ADDRESS)
+    issues.push("MAIL_FROM_ADDRESS is required in production.");
+  if (env.MAIL_USERNAME && !env.MAIL_PASSWORD)
+    issues.push("MAIL_PASSWORD is required when MAIL_USERNAME is configured.");
+  if (
+    env.MEDIA_STORAGE_PROVIDER === "local" &&
+    !env.CPANEL_PERSISTENT_LOCAL_MEDIA
+  ) {
+    issues.push(
+      "Production local media requires CPANEL_PERSISTENT_LOCAL_MEDIA=true.",
+    );
+  }
+  if (
+    env.MEDIA_STORAGE_PROVIDER === "local" &&
+    !path.isAbsolute(env.LOCAL_MEDIA_ROOT)
+  ) {
+    issues.push(
+      "LOCAL_MEDIA_ROOT must be an absolute persistent path in production.",
+    );
+  }
   if (env.MEDIA_STORAGE_PROVIDER === "s3" && !env.S3_BUCKET)
     issues.push("S3_BUCKET is required for production media storage.");
   return issues;

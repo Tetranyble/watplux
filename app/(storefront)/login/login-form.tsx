@@ -56,6 +56,14 @@ export function LoginForm({ next }: { next?: string }) {
         autoComplete="current-password"
         required
       />
+      <div className="-mt-2 flex justify-end">
+        <Link
+          href="/forgot-password"
+          className="inline-flex min-h-11 items-center text-sm font-medium text-primary-emphasis hover:underline sm:min-h-8"
+        >
+          Forgot password?
+        </Link>
+      </div>
       <Button
         type="submit"
         size="lg"

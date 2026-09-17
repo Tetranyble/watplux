@@ -56,6 +56,7 @@ for file in package.json package-lock.json .nvmrc server.js tsconfig.json; do
 done
 
 cp deploy/.env.cpanel.example "$stage_dir/app/.env.production.example"
+cp deploy/cpanel-cron.example "$stage_dir/app/cpanel-cron.example"
 cp -R prisma scripts src lib "$stage_dir/app/"
 
 # Native modules built on the developer machine are not portable to cPanel's
@@ -101,6 +102,7 @@ for required in \
   runtime/node_modules/@img/sharp-linux-x64/lib/sharp-linux-x64.node \
   runtime/public/web-app-manifest-192x192.png \
   package-lock.json \
+  cpanel-cron.example \
   prisma/schema.prisma \
   scripts/prepare-cpanel-runtime.mjs \
   scripts/stage-cpanel-linux-dependencies.sh \

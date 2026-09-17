@@ -42,6 +42,31 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+export const requestPasswordResetSchema = z.object({ email: emailSchema });
+export type RequestPasswordResetInput = z.infer<
+  typeof requestPasswordResetSchema
+>;
+
+export const resendVerificationSchema = requestPasswordResetSchema;
+export type ResendVerificationInput = RequestPasswordResetInput;
+
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().min(1, "This password-reset link is invalid."),
+    newPassword: passwordPolicySchema,
+    confirmPassword: z.string().min(1, "Confirm your new password."),
+  })
+  .superRefine((value, ctx) => {
+    if (value.newPassword !== value.confirmPassword) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: "The new passwords do not match.",
+      });
+    }
+  });
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1, "Current password is required."),

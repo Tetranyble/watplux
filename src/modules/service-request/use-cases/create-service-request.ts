@@ -5,6 +5,7 @@ import {
   type CreateServiceRequestInput,
 } from "@/src/modules/service-request/schema";
 import type { AuthenticatedUser } from "@/src/modules/auth/types";
+import { sendServiceRequestAcknowledgement } from "@/src/modules/service-request/use-cases/send-service-request-acknowledgement";
 import { toServiceRequestRecord } from "@/src/modules/service-request/use-cases/shared";
 
 export async function createServiceRequest(
@@ -21,5 +22,10 @@ export async function createServiceRequest(
     userId: actor?.id ?? null,
     input,
   });
-  return toServiceRequestRecord(row);
+  const request = toServiceRequestRecord(row);
+  // Persistence is authoritative. Notification providers are best-effort and
+  // log their own failures, so an SMTP/SMS outage never loses or duplicates a
+  // customer's already-created request.
+  await sendServiceRequestAcknowledgement(request);
+  return request;
 }

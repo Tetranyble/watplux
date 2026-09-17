@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { APIError } from "better-auth/api";
 
 import { getAuth } from "@/lib/auth";
 import { clearGuestCartCookie, getRawGuestCartToken } from "@/lib/cart-actor";
@@ -48,7 +49,16 @@ export async function loginFormAction(
       );
       if (merged.merged) await clearGuestCartCookie();
     }
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof APIError &&
+      error.body?.code === "EMAIL_NOT_VERIFIED"
+    ) {
+      return {
+        error:
+          "Verify your email before signing in. We sent a fresh verification link.",
+      };
+    }
     // Keep authentication failure intentionally generic.
     return { error: "Invalid email or password." };
   }

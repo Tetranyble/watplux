@@ -4,10 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getAuth } from "@/lib/auth";
-import { clearGuestCartCookie, getRawGuestCartToken } from "@/lib/cart-actor";
-import { getSessionUser } from "@/lib/session";
 import { registerSchema } from "@/src/modules/auth/schema";
-import { mergeGuestCartTokenIntoUserCart } from "@/src/modules/cart/use-cases/merge-guest-cart-into-user-cart";
 
 export interface RegisterFormState {
   error?: string;
@@ -31,20 +28,9 @@ export async function registerFormAction(
 
   try {
     await getAuth().api.signUpEmail({
-      body: parsed.data,
+      body: { ...parsed.data, callbackURL: "/login?verified=1" },
       headers: await headers(),
     });
-    const [actor, guestRawToken] = await Promise.all([
-      getSessionUser(),
-      getRawGuestCartToken(),
-    ]);
-    if (actor && guestRawToken) {
-      const merged = await mergeGuestCartTokenIntoUserCart(
-        actor.id,
-        guestRawToken,
-      );
-      if (merged.merged) await clearGuestCartCookie();
-    }
   } catch {
     return {
       error:
@@ -52,5 +38,5 @@ export async function registerFormAction(
     };
   }
 
-  redirect("/account");
+  redirect("/verify-email?sent=1");
 }

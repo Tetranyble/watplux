@@ -13,6 +13,8 @@ Native browser capabilities may still exist *inside* a shadcn wrapper (for examp
 Corner radius communicates component scale rather than varying by feature:
 
 - form controls and compact interactive items: 4px;
+- mobile controls and menu items: at least 44px tall/tappable, with compact
+  sizing permitted from the `sm` breakpoint upward;
 - compact panels, alerts and table shells: 6px;
 - standard cards, dialogs, menus and toolbars: 8px;
 - prominent surfaces and large media containers: 12px;

@@ -8,6 +8,11 @@ import { nextCookies } from "better-auth/next-js";
 import { db } from "@/lib/db";
 import { env, requireBetterAuthSecret } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { sendTransactionalEmail } from "@/src/integrations/email/mailer";
+import {
+  passwordResetEmail,
+  verificationEmail,
+} from "@/src/integrations/email/templates";
 import {
   hashPassword,
   verifyPassword,
@@ -30,10 +35,18 @@ const createAuth = () =>
     database: prismaAdapter(db, { provider: "mysql" }),
     emailAndPassword: {
       enabled: true,
-      autoSignIn: true,
+      autoSignIn: false,
+      requireEmailVerification: true,
       minPasswordLength: 10,
       maxPasswordLength: 128,
       revokeSessionsOnPasswordReset: true,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      sendResetPassword: async ({ user, url }) => {
+        await sendTransactionalEmail({
+          to: user.email,
+          ...passwordResetEmail(user.name, url),
+        });
+      },
       password: {
         hash: async (password) => {
           const policy = checkPasswordPolicy(password);
@@ -49,6 +62,18 @@ const createAuth = () =>
         verify: ({ hash, password }) => verifyPassword(password, hash),
       },
     },
+    emailVerification: {
+      sendOnSignUp: true,
+      sendOnSignIn: true,
+      autoSignInAfterVerification: false,
+      expiresIn: 60 * 60,
+      sendVerificationEmail: async ({ user, url }) => {
+        await sendTransactionalEmail({
+          to: user.email,
+          ...verificationEmail(user.name, url),
+        });
+      },
+    },
     rateLimit: {
       enabled: env.NODE_ENV !== "test",
       storage: "database",
@@ -60,6 +85,7 @@ const createAuth = () =>
         "/sign-up/email": { window: 60 * 10, max: 5 },
         "/request-password-reset": { window: 60 * 10, max: 3 },
         "/reset-password": { window: 60 * 10, max: 5 },
+        "/send-verification-email": { window: 60 * 10, max: 3 },
         "/change-password": { window: 60 * 10, max: 5 },
       },
     },

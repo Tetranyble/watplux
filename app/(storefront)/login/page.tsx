@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { BatteryCharging, ShieldCheck, ShoppingBag } from "lucide-react";
 
 import { LoginForm } from "@/app/(storefront)/login/login-form";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -12,9 +13,9 @@ export const instant = false;
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; reset?: string; verified?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, reset, verified } = await searchParams;
 
   return (
     <div className="page-shell grid min-h-[calc(100vh-8rem)] items-center gap-10 py-12 lg:grid-cols-[1.1fr_.9fr]">
@@ -62,6 +63,18 @@ export default async function LoginPage({
             Manage your cart, orders and payments.
           </p>
         </div>
+        {verified || reset ? (
+          <Alert className="mb-5 border-primary/30 bg-primary/10 px-3 py-3">
+            <AlertTitle>
+              {verified ? "Email verified" : "Password updated"}
+            </AlertTitle>
+            <AlertDescription>
+              {verified
+                ? "Your account is ready. You can sign in now."
+                : "Your new password is active. Sign in to continue."}
+            </AlertDescription>
+          </Alert>
+        ) : null}
         <LoginForm next={next} />
       </section>
     </div>

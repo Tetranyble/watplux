@@ -1,8 +1,9 @@
 # Deploy Watplux to cPanel
 
-Watplux runs in cPanel as a Node.js application backed by MySQL and
-S3-compatible object storage. It is not a static export and must not be
-extracted into `public_html`.
+Watplux runs in cPanel as a Node.js application backed by MySQL and either
+S3-compatible storage or a persistent local media directory outside versioned
+releases. It is not a static export and must not be extracted into
+`public_html`.
 
 ## Hosting requirements
 
@@ -11,27 +12,34 @@ Confirm the hosting plan provides:
 - cPanel **Setup Node.js App** with Node.js `22.23.1` or newer;
 - SSH or cPanel Terminal and cron jobs;
 - MySQL 8-compatible connectivity with backups and point-in-time recovery;
-- outbound HTTPS access to Paystack and the configured S3 service;
+- outbound HTTPS access to Paystack, SMTP, optional Termii, and the configured
+  storage service;
 - enough memory to run the packaged Next.js server.
 
 If the cPanel MySQL service does not provide production-grade backups/PITR,
-use an external managed MySQL provider. Uploaded media must use S3; do not use
-the cPanel application filesystem for production uploads.
+use an external managed MySQL provider. If local media storage is selected,
+the hosting account must back up `/home/CPANEL_USER/watplux/shared/media`; never
+store uploads inside `releases/<git-sha>` or `runtime/`.
 
 ## 1. Prepare the database, storage and HTTPS
 
 Create a dedicated production database/user and grant that user privileges on
-only the Watplux database. Create the private S3 bucket, enable object
-versioning, and create least-privilege credentials for that bucket. Point the
-domain to the hosting account and finish SSL provisioning before enabling a
-forced HTTPS redirect.
+only the Watplux database. Choose either the persistent local directory shown
+in `.env.cpanel.example` or an S3 bucket with versioning and least-privilege
+credentials. Point the domain to the hosting account and finish SSL
+provisioning before enabling a forced HTTPS redirect.
 
-Paystack's callback origin must be the final HTTPS site URL. Configure its
-webhook URL as:
+Paystack's callback origin must be the final HTTPS site URL. In the Paystack
+dashboard, register this exact public webhook endpoint:
 
 ```text
 https://your-domain.example/api/paystack/webhook
 ```
+
+This endpoint accepts Paystack events and stores them durably. Do not register
+the internal worker endpoint with Paystack. `PAYSTACK_SECRET_KEY` is also used
+to verify the `x-paystack-signature` header; there is no separate webhook
+secret in this application.
 
 ## 2. Build the release locally
 
@@ -107,6 +115,17 @@ ln -s /home/CPANEL_USER/watplux/shared/.env.production .env.production
 chmod 600 /home/CPANEL_USER/watplux/shared/.env.production
 ```
 
+For persistent local media, create and protect the shared directory once:
+
+```bash
+mkdir -p /home/CPANEL_USER/watplux/shared/media
+chmod 750 /home/CPANEL_USER/watplux/shared/media
+```
+
+Set `MEDIA_STORAGE_PROVIDER=local`, `CPANEL_PERSISTENT_LOCAL_MEDIA=true`, and
+`LOCAL_MEDIA_ROOT=/home/CPANEL_USER/watplux/shared/media`. Fresh deployments
+then replace only application code; uploaded files remain in `shared/media`.
+
 Generate independent secrets with `openssl rand -base64 48`. Do not reuse the
 Better Auth, guest-order, and internal-worker secrets.
 
@@ -160,19 +179,39 @@ after changing the release pointer or environment. If Setup Node.js App does
 not accept a symlinked application root, point it directly at the versioned
 release directory and update that field during each rollout.
 
-## 6. Schedule webhook processing
+## 6. Register the webhook worker cron job
 
 The web process does not run migrations or background loops. Add a once-per-
 minute cPanel cron job that loads the private environment and invokes the
-authenticated worker endpoint:
+authenticated worker endpoint. In **cPanel → Cron Jobs**, choose **Once Per
+Minute** and paste this command as one line:
 
 ```bash
-/bin/bash -lc 'cd /home/CPANEL_USER/watplux/current && set -a && source .env.production && set +a && APP_INTERNAL_URL=https://your-domain.example ./scripts/trigger-webhook-worker.sh'
+/bin/bash -lc 'cd /home/CPANEL_USER/watplux/current && set -a && source .env.production && set +a && APP_INTERNAL_URL=https://your-domain.example ./scripts/trigger-webhook-worker.sh' >> /home/CPANEL_USER/watplux/shared/webhook-worker.log 2>&1
 ```
 
-Keep the cron output in a protected log or direct failures to the hosting
-provider's monitoring. Never place `INTERNAL_WORKER_SECRET` directly in the
-crontab command.
+The cron calls:
+
+```text
+POST https://your-domain.example/api/internal/process-webhook-events
+Header: x-internal-worker-secret: <INTERNAL_WORKER_SECRET>
+```
+
+The packaged trigger script supplies that header from `.env.production`, so
+the secret is not copied into cPanel's cron command. Protect and rotate the log:
+
+```bash
+touch /home/CPANEL_USER/watplux/shared/webhook-worker.log
+chmod 600 /home/CPANEL_USER/watplux/shared/webhook-worker.log
+```
+
+Both integrations are required for payment state to progress:
+
+1. Paystack sends events to `POST /api/paystack/webhook`.
+2. The cron invokes `POST /api/internal/process-webhook-events` every minute.
+
+The first endpoint verifies and stores events quickly; the second performs the
+slower authoritative verification and order/payment updates.
 
 ## 7. Verify production
 
@@ -186,13 +225,15 @@ https://your-domain.example/login
 https://your-domain.example/admin
 ```
 
-Then verify registration/login, owner RBAC, product browsing, an approved
-Paystack test/live checkout, media upload, avatar upload, and one authenticated
-webhook-worker run. Confirm `/api/ready` is healthy before accepting traffic.
+Then verify registration email delivery, email verification, password reset,
+login, owner RBAC, product browsing, a consultation acknowledgement, an
+approved Paystack test/live checkout, media upload, avatar upload, and one
+authenticated webhook-worker run. If Termii is configured, confirm the SMS
+acknowledgement too. Confirm `/api/ready` is healthy before accepting traffic.
 
 ## Later releases and rollback
 
-1. Confirm database backup/PITR and S3 versioning.
+1. Confirm database backup/PITR and either S3 versioning or shared-media backup.
 2. Upload and extract the new SHA-named archive into a new release directory.
 3. Run the packaged runtime preflight and apply the new release's migrations
    through the approved one-shot migration path.

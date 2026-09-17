@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import path from "node:path";
+
 const required = [
   "DATABASE_URL",
   "BETTER_AUTH_SECRET",
@@ -7,7 +9,8 @@ const required = [
   "PAYSTACK_SECRET_KEY",
   "INTERNAL_WORKER_SECRET",
   "GUEST_ORDER_TOKEN_SECRET",
-  "S3_BUCKET",
+  "MAIL_HOST",
+  "MAIL_FROM_ADDRESS",
 ];
 
 const problems = [];
@@ -16,8 +19,22 @@ for (const name of required) {
 }
 if (process.env.DEPLOYMENT_ENV !== "production")
   problems.push("DEPLOYMENT_ENV must be production");
-if (process.env.MEDIA_STORAGE_PROVIDER !== "s3")
-  problems.push("MEDIA_STORAGE_PROVIDER must be s3");
+if (process.env.MAIL_MAILER !== "smtp")
+  problems.push("MAIL_MAILER must be smtp");
+if (process.env.MAIL_USERNAME && !process.env.MAIL_PASSWORD)
+  problems.push("MAIL_PASSWORD is required when MAIL_USERNAME is configured");
+if (process.env.MEDIA_STORAGE_PROVIDER === "s3" && !process.env.S3_BUCKET)
+  problems.push("S3_BUCKET is required when MEDIA_STORAGE_PROVIDER=s3");
+if (process.env.MEDIA_STORAGE_PROVIDER === "local") {
+  if (process.env.CPANEL_PERSISTENT_LOCAL_MEDIA !== "true")
+    problems.push(
+      "CPANEL_PERSISTENT_LOCAL_MEDIA must be true for production local storage",
+    );
+  if (!path.isAbsolute(process.env.LOCAL_MEDIA_ROOT ?? ""))
+    problems.push("LOCAL_MEDIA_ROOT must be an absolute persistent path");
+}
+if (!["local", "s3"].includes(process.env.MEDIA_STORAGE_PROVIDER ?? ""))
+  problems.push("MEDIA_STORAGE_PROVIDER must be local or s3");
 for (const name of ["APP_BASE_URL", "BETTER_AUTH_URL"]) {
   const value = process.env[name];
   if (value && !value.startsWith("https://"))
