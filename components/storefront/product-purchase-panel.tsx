@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { CatalogVariant } from "@/src/modules/catalog/types";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 /**
  * The one genuinely interactive PDP region — variant selection, quantity,
@@ -31,6 +32,7 @@ export function ProductPurchasePanel({
   variants: CatalogVariant[];
   availableQuantityByVariantId: Record<string, number>;
 }) {
+  const copy = useSiteCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const activeVariants = variants.filter((v) => v.status === "ACTIVE");
@@ -49,7 +51,7 @@ export function ProductPurchasePanel({
   if (!selectedVariant) {
     return (
       <p className="text-sm text-muted-foreground">
-        This product is unavailable.
+        {copy("catalog.purchase.unavailable")}
       </p>
     );
   }
@@ -65,16 +67,16 @@ export function ProductPurchasePanel({
         });
         if (!res.ok) {
           const body = await res.json().catch(() => null);
-          toast.error(body?.error ?? "Could not add this item to your cart.");
+          toast.error(body?.error ?? copy("catalog.purchase.addFailed"));
           return;
         }
-        toast.success("Added to cart.");
+        toast.success(copy("catalog.purchase.added"));
         // Re-renders the current route tree server-side, including the
         // layout's Suspense-wrapped cart-count badge — no separate cart
         // store to keep in sync (docs/PHASE_9_STOREFRONT_PLAN.md §11/§21).
         router.refresh();
       } catch {
-        toast.error("Something went wrong. Please try again.");
+        toast.error(copy("catalog.purchase.generalError"));
       }
     });
   }
@@ -96,7 +98,10 @@ export function ProductPurchasePanel({
             setQuantity(1);
           }}
         >
-          <SelectTrigger aria-label="Select variant" className="w-full">
+          <SelectTrigger
+            aria-label={copy("catalog.purchase.variantAria")}
+            className="w-full"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -111,20 +116,22 @@ export function ProductPurchasePanel({
 
       <p aria-live="polite" className="text-sm text-muted-foreground">
         {selectedVariant.status !== "ACTIVE"
-          ? "Currently unavailable."
+          ? copy("catalog.purchase.currentlyUnavailable")
           : availableQuantity > 0
-            ? `In stock`
-            : "Out of stock"}
+            ? copy("catalog.purchase.inStock")
+            : copy("catalog.purchase.outOfStock")}
       </p>
 
       <div className="flex items-center gap-3">
-        <span className="text-sm font-medium">Quantity</span>
+        <span className="text-sm font-medium">
+          {copy("catalog.purchase.quantity")}
+        </span>
         <div className="flex items-center rounded-md border">
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label="Decrease quantity"
+            aria-label={copy("catalog.purchase.decrease")}
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
           >
             &minus;
@@ -140,7 +147,7 @@ export function ProductPurchasePanel({
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label="Increase quantity"
+            aria-label={copy("catalog.purchase.increase")}
             disabled={
               availableQuantity <= 0 ||
               quantity >= Math.floor(availableQuantity)
@@ -163,7 +170,9 @@ export function ProductPurchasePanel({
         }
         onClick={handleAddToCart}
       >
-        {isPending ? "Adding…" : "Add to cart"}
+        {isPending
+          ? copy("catalog.purchase.adding")
+          : copy("catalog.purchase.add")}
       </Button>
     </div>
   );

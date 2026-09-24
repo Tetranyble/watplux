@@ -1,12 +1,14 @@
 import type { MetadataRoute } from "next";
 
-import { siteConfig } from "@/lib/site-config";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const copy = await getSiteCopy();
+  const c = (key: string) => copyValue(copy, key);
   return {
-    name: siteConfig.name,
-    short_name: siteConfig.name,
-    description: siteConfig.description,
+    name: c("site.name"),
+    short_name: c("site.name"),
+    description: c("site.description"),
     start_url: "/",
     display: "standalone",
     background_color: "#f9f8f5",

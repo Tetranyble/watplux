@@ -6,19 +6,23 @@ import { CheckoutAddressForm } from "@/components/storefront/checkout-address-fo
 import { resolveCartActor } from "@/lib/cart-actor";
 import { getSessionUser } from "@/lib/session";
 import { getActiveCart } from "@/src/modules/cart/use-cases/get-active-cart";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
-export const metadata: Metadata = {
-  title: "Checkout",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return { title: copyValue(copy, "commerce.checkout.metaTitle") };
+}
 
 // Session/guest-cookie-dependent — never cached (docs/PHASE_9_STOREFRONT_PLAN.md §8).
 export const instant = false;
 
 export default async function CheckoutPage() {
-  const [actor, sessionUser] = await Promise.all([
+  const [actor, sessionUser, copy] = await Promise.all([
     resolveCartActor(),
     getSessionUser(),
+    getSiteCopy(),
   ]);
+  const c = (key: string) => copyValue(copy, key);
   const cart = actor.type === "none" ? null : await getActiveCart(actor);
 
   if (!cart || cart.items.length === 0) {
@@ -32,13 +36,13 @@ export default async function CheckoutPage() {
     <div className="page-shell py-10 sm:py-14">
       <div className="mb-8">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-emphasis">
-          Secure checkout
+          {c("commerce.checkout.eyebrow")}
         </p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          Complete your order
+          {c("commerce.checkout.title")}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Confirm where your items should go, then continue to Paystack to pay.
+          {c("commerce.checkout.description")}
         </p>
       </div>
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">

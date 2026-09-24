@@ -19,10 +19,12 @@ import { PrismaClient } from "@prisma/client";
 import { env } from "@/lib/env";
 import { seedAdminAccount } from "./seed-admin";
 import { seedRbacData } from "./seed-data";
+import { seedSiteCopy } from "./site-copy-seed";
 
 const db = new PrismaClient();
 
 seedRbacData(db)
+  .then(() => seedSiteCopy(db))
   .then(() =>
     seedAdminAccount(db, {
       email: env.SEED_ADMIN_EMAIL,

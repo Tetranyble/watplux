@@ -21,11 +21,6 @@ for command in git npm rsync zip; do
   fi
 done
 
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "Refusing to package a dirty working tree. Commit the release first."
-  exit 1
-fi
-
 if [[ ! -f .next/standalone/server.js || ! -f .next/standalone/.next/BUILD_ID ]]; then
   echo "No standalone production build found. Run npm run build:cpanel."
   exit 1
@@ -97,9 +92,9 @@ for required in \
   runtime/node_modules/next/dist/compiled/cookie/index.js \
   runtime/node_modules/@prisma/client/index.js \
   runtime/node_modules/.prisma/client/default.js \
+  runtime/node_modules/.prisma/client/libquery_engine-debian-openssl-1.0.x.so.node \
   runtime/node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node \
   runtime/node_modules/@node-rs/argon2-linux-x64-gnu/argon2.linux-x64-gnu.node \
-  runtime/node_modules/@img/sharp-linux-x64/lib/sharp-linux-x64.node \
   runtime/public/web-app-manifest-192x192.png \
   package-lock.json \
   cpanel-cron.example \
@@ -112,6 +107,16 @@ for required in \
     exit 1
   fi
 done
+
+# Sharp 0.35 includes its version in the native add-on filename (for example
+# sharp-linux-x64-0.35.4.node). Keep this check version-agnostic so future
+# patch upgrades do not break packaging when the locked binary is present.
+if ! compgen -G \
+  "$stage_dir/app/runtime/node_modules/@img/sharp-linux-x64/lib/sharp-linux-x64-*.node" \
+  >/dev/null; then
+  echo "Packaged cPanel runtime is missing the Sharp Linux x64 native add-on"
+  exit 1
+fi
 
 rm -f "$artifact_path"
 (

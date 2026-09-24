@@ -12,12 +12,29 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { interpolateCopy } from "@/src/modules/site-copy/copy";
 
 const subscribe = () => () => {};
 const getClientSnapshot = () => true;
 const getServerSnapshot = () => false;
 
-export function ThemeToggle() {
+type ThemeCopy = {
+  changeAria: string;
+  current: string;
+  light: string;
+  dark: string;
+  system: string;
+};
+
+const adminCopy: ThemeCopy = {
+  changeAria: "Change color theme",
+  current: "Color theme: {theme}",
+  light: "Light",
+  dark: "Dark",
+  system: "System",
+};
+
+export function ThemeToggle({ copy = adminCopy }: { copy?: ThemeCopy }) {
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(
     subscribe,
@@ -31,7 +48,7 @@ export function ThemeToggle() {
         variant="ghost"
         size="icon"
         className="size-10"
-        aria-label="Change color theme"
+        aria-label={copy.changeAria}
         disabled
       >
         <Sun className="size-4" aria-hidden="true" />
@@ -55,7 +72,7 @@ export function ThemeToggle() {
             variant="ghost"
             size="icon"
             className="size-10"
-            aria-label={`Color theme: ${selectedTheme}`}
+            aria-label={interpolateCopy(copy.current, { theme: selectedTheme })}
           />
         }
       >
@@ -76,7 +93,7 @@ export function ThemeToggle() {
             className="gap-3 px-3 py-2.5"
           >
             <Sun className="size-4 text-muted-foreground" aria-hidden="true" />
-            Light
+            {copy.light}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="dark"
@@ -84,7 +101,7 @@ export function ThemeToggle() {
             className="gap-3 px-3 py-2.5"
           >
             <Moon className="size-4 text-muted-foreground" aria-hidden="true" />
-            Dark
+            {copy.dark}
           </DropdownMenuRadioItem>
           <DropdownMenuRadioItem
             value="system"
@@ -95,7 +112,7 @@ export function ThemeToggle() {
               className="size-4 text-muted-foreground"
               aria-hidden="true"
             />
-            System
+            {copy.system}
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>

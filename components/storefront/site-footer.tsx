@@ -1,88 +1,118 @@
 import Link from "next/link";
 import { BrandLockup } from "@/components/brand/brand-lockup";
-import { siteConfig } from "@/lib/site-config";
+import {
+  copyValue,
+  interpolateCopy,
+  type SiteCopyDictionary,
+} from "@/app/_data/site-copy";
 
-export function SiteFooter({ currentYear }: { currentYear: number }) {
+export function SiteFooter({
+  currentYear,
+  copy,
+}: {
+  currentYear: number;
+  copy: SiteCopyDictionary;
+}) {
+  const c = (key: string) => copyValue(copy, key);
   return (
     <footer className="mt-16 border-t bg-card/70">
       <div className="page-shell grid gap-10 py-12 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div className="max-w-sm">
-          <BrandLockup />
+          <BrandLockup siteName={c("site.name")} />
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            {siteConfig.description}
+            {c("site.description")}
           </p>
         </div>
-        <nav aria-label="Shop" className="flex flex-col gap-2.5 text-sm">
-          <p className="font-semibold text-foreground">Shop</p>
+        <nav
+          aria-label={c("chrome.footer.shop.aria")}
+          className="flex flex-col gap-2.5 text-sm"
+        >
+          <p className="font-semibold text-foreground">
+            {c("chrome.footer.shop.heading")}
+          </p>
           <Link
             href="/products"
             className="text-muted-foreground hover:text-primary-emphasis"
           >
-            All products
+            {c("chrome.footer.allProducts")}
           </Link>
           <Link
             href="/cart"
             className="text-muted-foreground hover:text-primary-emphasis"
           >
-            Cart
+            {c("chrome.footer.cart")}
           </Link>
         </nav>
-        <nav aria-label="Services" className="flex flex-col gap-2.5 text-sm">
-          <p className="font-semibold text-foreground">Services</p>
+        <nav
+          aria-label={c("chrome.footer.services.aria")}
+          className="flex flex-col gap-2.5 text-sm"
+        >
+          <p className="font-semibold text-foreground">
+            {c("chrome.footer.services.heading")}
+          </p>
           <Link
             href="/consultation"
             className="text-muted-foreground hover:text-primary-emphasis"
           >
-            Solar consultation
+            {c("chrome.footer.consultation")}
           </Link>
           <Link
             href="/installation"
             className="text-muted-foreground hover:text-primary-emphasis"
           >
-            Installation
+            {c("chrome.footer.installation")}
           </Link>
         </nav>
-        <nav aria-label="Get help" className="flex flex-col gap-2.5 text-sm">
-          <p className="font-semibold text-foreground">Get help</p>
+        <nav
+          aria-label={c("chrome.footer.help.aria")}
+          className="flex flex-col gap-2.5 text-sm"
+        >
+          <p className="font-semibold text-foreground">
+            {c("chrome.footer.help.heading")}
+          </p>
           <Link
             href="/consultation"
             className="text-muted-foreground hover:text-primary-emphasis"
           >
-            Plan a system
+            {c("chrome.footer.plan")}
           </Link>
           <Link
             href="/installation"
             className="text-muted-foreground hover:text-primary-emphasis"
           >
-            Request installation
+            {c("chrome.footer.requestInstallation")}
           </Link>
           <Link
             href="/account/service-requests"
             className="text-muted-foreground hover:text-primary-emphasis"
           >
-            Track a request
+            {c("chrome.footer.trackRequest")}
           </Link>
         </nav>
       </div>
       <div className="border-t">
         <div className="page-shell flex flex-col gap-2 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>
-            &copy; {currentYear} {siteConfig.name}. All rights reserved.
+            {interpolateCopy(c("chrome.footer.copyright"), {
+              currentYear,
+              year: currentYear,
+              siteName: c("site.name"),
+            })}
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:justify-end">
-            <p>Reliable energy, designed around real needs.</p>
+            <p>{c("chrome.footer.tagline")}</p>
             <span aria-hidden="true" className="hidden sm:inline">
               ·
             </span>
             <p>
-              Designed and developed by{" "}
+              {c("chrome.footer.creditPrefix")}{" "}
               <a
                 href="https://tetranyble.com"
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-foreground underline-offset-4 transition-colors hover:text-primary-emphasis hover:underline"
               >
-                Tetranyble Labs Ltd
+                {c("chrome.footer.creditName")}
               </a>
             </p>
           </div>

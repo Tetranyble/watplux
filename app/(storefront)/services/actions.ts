@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { createServiceRequestSchema } from "@/src/modules/service-request/schema";
 import { createServiceRequest } from "@/src/modules/service-request/use-cases/create-service-request";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
 export interface ServiceRequestFormState {
   error?: string;
@@ -19,6 +20,7 @@ export async function submitServiceRequest(
   _previousState: ServiceRequestFormState,
   formData: FormData,
 ): Promise<ServiceRequestFormState> {
+  const copy = await getSiteCopy();
   const parsed = createServiceRequestSchema.safeParse({
     serviceType: formData.get("serviceType"),
     guestName: optional(formData, "guestName"),
@@ -40,7 +42,9 @@ export async function submitServiceRequest(
   });
   if (!parsed.success) {
     return {
-      error: parsed.error.issues[0]?.message ?? "Check the request details.",
+      error:
+        parsed.error.issues[0]?.message ??
+        copyValue(copy, "services.form.invalid"),
     };
   }
 
@@ -54,7 +58,7 @@ export async function submitServiceRequest(
       error:
         error instanceof Error
           ? error.message
-          : "We could not submit your request. Please try again.",
+          : copyValue(copy, "services.form.failed"),
     };
   }
 }

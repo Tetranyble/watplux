@@ -16,6 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export interface NavLink {
   href: string;
@@ -48,6 +49,7 @@ export function MobileNav({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const copy = useSiteCopy();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -57,7 +59,7 @@ export function MobileNav({
             variant="ghost"
             size="icon"
             className="md:hidden"
-            aria-label="Open menu"
+            aria-label={copy("chrome.mobile.openAria")}
           />
         }
       >
@@ -71,9 +73,11 @@ export function MobileNav({
           <SheetTitle className="flex items-center gap-3 text-left">
             <BrandMark className="size-9" />
             <span>
-              <span className="block text-sm font-semibold">Watplux</span>
+              <span className="block text-sm font-semibold">
+                {copy("chrome.mobile.title")}
+              </span>
               <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
-                Solar shop &amp; services
+                {copy("chrome.mobile.subtitle")}
               </span>
             </span>
           </SheetTitle>
@@ -81,9 +85,12 @@ export function MobileNav({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
           <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Explore
+            {copy("chrome.mobile.explore")}
           </p>
-          <nav aria-label="Mobile" className="grid gap-1">
+          <nav
+            aria-label={copy("chrome.mobile.navAria")}
+            className="grid gap-1"
+          >
             {links.map((link) => {
               const Icon =
                 ICONS[link.href as keyof typeof ICONS] ?? ShoppingBag;

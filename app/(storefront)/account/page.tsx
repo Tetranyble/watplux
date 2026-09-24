@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { getSessionUser } from "@/lib/session";
 import { toSafeUser } from "@/src/modules/auth/types";
+import { copyValue, getSiteCopy, interpolateCopy } from "@/app/_data/site-copy";
 
 export const instant = false;
 
@@ -34,8 +35,9 @@ export const instant = false;
  * Better Auth; this page never derives identity from browser-provided data.
  */
 export default async function AccountPage() {
-  const user = await getSessionUser();
+  const [user, copy] = await Promise.all([getSessionUser(), getSiteCopy()]);
   if (!user) redirect("/login?next=/account");
+  const c = (key: string) => copyValue(copy, key);
 
   const safeUser = toSafeUser(user);
 
@@ -44,18 +46,19 @@ export default async function AccountPage() {
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <Badge variant="outline" className="mb-3">
-            Your account
+            {c("account.eyebrow")}
           </Badge>
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Welcome back, {safeUser.name.split(" ")[0] || safeUser.name}
+            {interpolateCopy(c("account.welcome"), {
+              name: safeUser.name.split(" ")[0] || safeUser.name,
+            })}
           </h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Track purchases, continue shopping, and manage the sessions
-            connected to your account.
+            {c("account.description")}
           </p>
         </div>
         <Button nativeButton={false} render={<Link href="/products" />}>
-          Browse products
+          {c("account.browse")}
         </Button>
       </div>
 
@@ -67,9 +70,9 @@ export default async function AccountPage() {
                 <UserRound className="size-5" />
               </div>
               <div>
-                <CardTitle>Account details</CardTitle>
+                <CardTitle>{c("account.details.title")}</CardTitle>
                 <CardDescription>
-                  Your identity is managed securely through Better Auth.
+                  {c("account.details.description")}
                 </CardDescription>
               </div>
             </CardHeader>
@@ -83,13 +86,13 @@ export default async function AccountPage() {
               </div>
               <div className="rounded-lg border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Name
+                  {c("account.details.name")}
                 </p>
                 <p className="mt-1 font-medium">{safeUser.name}</p>
               </div>
               <div className="rounded-lg border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Email
+                  {c("account.details.email")}
                 </p>
                 <p className="mt-1 break-all font-medium">{safeUser.email}</p>
               </div>
@@ -99,9 +102,11 @@ export default async function AccountPage() {
           <Card>
             <CardHeader>
               <PackageCheck className="mb-2 size-5" />
-              <CardTitle className="text-lg">Your orders</CardTitle>
+              <CardTitle className="text-lg">
+                {c("account.orders.title")}
+              </CardTitle>
               <CardDescription>
-                Review orders, payment attempts and delivery details.
+                {c("account.orders.description")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -111,7 +116,7 @@ export default async function AccountPage() {
                 nativeButton={false}
                 render={<Link href="/account/orders" />}
               >
-                View orders
+                {c("account.orders.view")}
               </Button>
             </CardContent>
           </Card>
@@ -119,9 +124,11 @@ export default async function AccountPage() {
           <Card>
             <CardHeader>
               <CalendarCheck className="mb-2 size-5" />
-              <CardTitle className="text-lg">Service requests</CardTitle>
+              <CardTitle className="text-lg">
+                {c("account.services.title")}
+              </CardTitle>
               <CardDescription>
-                Track solar consultations and installation requests.
+                {c("account.services.description")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -131,7 +138,7 @@ export default async function AccountPage() {
                 nativeButton={false}
                 render={<Link href="/account/service-requests" />}
               >
-                View requests
+                {c("account.services.view")}
               </Button>
             </CardContent>
           </Card>
@@ -139,10 +146,10 @@ export default async function AccountPage() {
           <Card>
             <CardHeader>
               <ShoppingCart className="mb-2 size-5" />
-              <CardTitle className="text-lg">Shopping cart</CardTitle>
-              <CardDescription>
-                Return to the cart you are building and continue to checkout.
-              </CardDescription>
+              <CardTitle className="text-lg">
+                {c("account.cart.title")}
+              </CardTitle>
+              <CardDescription>{c("account.cart.description")}</CardDescription>
             </CardHeader>
             <CardContent>
               <Button
@@ -151,7 +158,7 @@ export default async function AccountPage() {
                 nativeButton={false}
                 render={<Link href="/cart" />}
               >
-                Open cart
+                {c("account.cart.open")}
               </Button>
             </CardContent>
           </Card>
@@ -161,9 +168,9 @@ export default async function AccountPage() {
           <Card>
             <CardHeader>
               <ShieldCheck className="mb-2 size-5" />
-              <CardTitle>Password</CardTitle>
+              <CardTitle>{c("account.password.title")}</CardTitle>
               <CardDescription>
-                Changing it also revokes your other active sessions.
+                {c("account.password.description")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -173,10 +180,9 @@ export default async function AccountPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Sessions</CardTitle>
+              <CardTitle>{c("account.sessions.title")}</CardTitle>
               <CardDescription>
-                End this session or revoke every active session for your
-                account.
+                {c("account.sessions.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -186,17 +192,16 @@ export default async function AccountPage() {
                   variant="outline"
                   className="w-full justify-start gap-2"
                 >
-                  <LogOut className="size-4" /> Log out
+                  <LogOut className="size-4" /> {c("account.sessions.logout")}
                 </Button>
               </form>
               <form action={logoutAllAction}>
                 <Button type="submit" variant="destructive" className="w-full">
-                  Log out of all devices
+                  {c("account.sessions.logoutAll")}
                 </Button>
               </form>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Use “log out of all devices” if you no longer recognise a
-                signed-in device.
+                {c("account.sessions.help")}
               </p>
             </CardContent>
           </Card>

@@ -12,3 +12,5 @@ config();
 const { db } = await import("@/lib/db");
 const { seedRbacData } = await import("../../prisma/seed-data");
 await seedRbacData(db);
+const { seedSiteCopy } = await import("../../prisma/site-copy-seed");
+await seedSiteCopy(db);

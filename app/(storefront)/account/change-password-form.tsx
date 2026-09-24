@@ -12,8 +12,10 @@ import {
   changePasswordSchema,
   type ChangePasswordInput,
 } from "@/src/modules/auth/schema";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export function ChangePasswordForm() {
+  const copy = useSiteCopy();
   const [isPending, startTransition] = useTransition();
   const {
     control,
@@ -39,11 +41,15 @@ export function ChangePasswordForm() {
       formData.set("confirmPassword", values.confirmPassword);
       const result = await changePasswordAction({}, formData);
       if (result.error) {
-        toast.error("Could not update password", { description: result.error });
+        toast.error(copy("account.password.errorTitle"), {
+          description: result.error,
+        });
         return;
       }
       if (result.success) {
-        toast.success("Password updated", { description: result.success });
+        toast.success(copy("account.password.successTitle"), {
+          description: result.success,
+        });
         reset();
       }
     });
@@ -54,7 +60,7 @@ export function ChangePasswordForm() {
       <ControlledInput
         control={control}
         name="currentPassword"
-        label="Current password"
+        label={copy("account.password.current")}
         type="password"
         autoComplete="current-password"
         required
@@ -62,16 +68,16 @@ export function ChangePasswordForm() {
       <ControlledInput
         control={control}
         name="newPassword"
-        label="New password"
+        label={copy("account.password.new")}
         type="password"
         autoComplete="new-password"
         required
-        description="Your new password is checked as you type."
+        description={copy("account.password.help")}
       />
       <ControlledInput
         control={control}
         name="confirmPassword"
-        label="Confirm new password"
+        label={copy("account.password.confirm")}
         type="password"
         autoComplete="new-password"
         required
@@ -81,7 +87,9 @@ export function ChangePasswordForm() {
         disabled={isPending || !isDirty || !isValid}
         className="self-start"
       >
-        {isPending ? "Updating…" : "Update password"}
+        {isPending
+          ? copy("account.password.updating")
+          : copy("account.password.submit")}
       </Button>
     </form>
   );

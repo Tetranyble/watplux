@@ -10,8 +10,10 @@ import { ControlledInput } from "@/components/forms/controlled-fields";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { loginSchema, type LoginInput } from "@/src/modules/auth/schema";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export function LoginForm({ next }: { next?: string }) {
+  const copy = useSiteCopy();
   const [isPending, startTransition] = useTransition();
   const {
     control,
@@ -32,7 +34,9 @@ export function LoginForm({ next }: { next?: string }) {
       if (next) formData.set("next", next);
       const result = await loginFormAction({}, formData);
       if (result?.error)
-        toast.error("Could not sign in", { description: result.error });
+        toast.error(copy("auth.login.errorTitle"), {
+          description: result.error,
+        });
     });
   });
 
@@ -41,17 +45,17 @@ export function LoginForm({ next }: { next?: string }) {
       <ControlledInput
         control={control}
         name="email"
-        label="Email address"
+        label={copy("auth.emailLabel")}
         type="email"
         autoComplete="email"
-        placeholder="you@example.com"
+        placeholder={copy("auth.emailPlaceholder")}
         required
         autoFocus
       />
       <ControlledInput
         control={control}
         name="password"
-        label="Password"
+        label={copy("auth.passwordLabel")}
         type="password"
         autoComplete="current-password"
         required
@@ -61,7 +65,7 @@ export function LoginForm({ next }: { next?: string }) {
           href="/forgot-password"
           className="inline-flex min-h-11 items-center text-sm font-medium text-primary-emphasis hover:underline sm:min-h-8"
         >
-          Forgot password?
+          {copy("auth.login.forgot")}
         </Link>
       </div>
       <Button
@@ -70,15 +74,15 @@ export function LoginForm({ next }: { next?: string }) {
         disabled={isPending || !isValid}
         className="w-full"
       >
-        {isPending ? "Signing in…" : "Sign in"}
+        {isPending ? copy("auth.login.signingIn") : copy("auth.login.submit")}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        New to Watplux?{" "}
+        {copy("auth.login.new")}{" "}
         <Link
           href="/register"
           className="font-medium text-primary-emphasis hover:underline"
         >
-          Create an account
+          {copy("auth.login.create")}
         </Link>
       </p>
     </form>

@@ -8,25 +8,27 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getSessionUser } from "@/lib/session";
 import { listMyServiceRequests } from "@/src/modules/service-request/use-cases/list-my-service-requests";
+import { copyValue, getSiteCopy, interpolateCopy } from "@/app/_data/site-copy";
 
 export const instant = false;
 
 export default async function MyServiceRequestsPage() {
-  const actor = await getSessionUser();
+  const [actor, copy] = await Promise.all([getSessionUser(), getSiteCopy()]);
   if (!actor) redirect("/login?next=/account/service-requests");
+  const c = (key: string) => copyValue(copy, key);
   const page = await listMyServiceRequests(actor, { limit: 50 });
   return (
     <div className="page-shell flex flex-1 flex-col py-10 sm:py-12 lg:py-14">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Badge variant="outline" className="mb-3">
-            Service requests
+            {c("account.requests.eyebrow")}
           </Badge>
           <h1 className="text-3xl font-semibold tracking-tight">
-            Consultation & installation
+            {c("account.requests.title")}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            Track requests submitted while signed in.
+            {c("account.requests.description")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -35,10 +37,10 @@ export default async function MyServiceRequestsPage() {
             nativeButton={false}
             render={<Link href="/consultation" />}
           >
-            New consultation
+            {c("account.requests.consultation")}
           </Button>
           <Button nativeButton={false} render={<Link href="/installation" />}>
-            Request installation
+            {c("account.requests.installation")}
           </Button>
         </div>
       </div>
@@ -47,8 +49,8 @@ export default async function MyServiceRequestsPage() {
           <EmptyState
             className="min-h-80"
             icon={ClipboardList}
-            title="No service requests yet"
-            description="Tell us what you need and track every update here from submission through completion."
+            title={c("account.requests.emptyTitle")}
+            description={c("account.requests.emptyDescription")}
             action={
               <div className="flex w-full max-w-sm flex-col-reverse gap-2 sm:flex-row sm:justify-center">
                 <Button
@@ -56,13 +58,13 @@ export default async function MyServiceRequestsPage() {
                   nativeButton={false}
                   render={<Link href="/consultation" />}
                 >
-                  New consultation
+                  {c("account.requests.consultation")}
                 </Button>
                 <Button
                   nativeButton={false}
                   render={<Link href="/installation" />}
                 >
-                  Request installation
+                  {c("account.requests.installation")}
                 </Button>
               </div>
             }
@@ -81,7 +83,10 @@ export default async function MyServiceRequestsPage() {
                       {item.serviceType.replaceAll("_", " ")}
                     </CardTitle>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Request #{item.id} · {item.createdAt.toLocaleDateString()}
+                      {interpolateCopy(c("account.request.reference"), {
+                        id: item.id,
+                      })}{" "}
+                      · {item.createdAt.toLocaleDateString()}
                     </p>
                   </div>
                   <Badge>{item.status.replaceAll("_", " ")}</Badge>

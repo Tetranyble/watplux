@@ -13,8 +13,10 @@ import {
   requestPasswordResetSchema,
   type RequestPasswordResetInput,
 } from "@/src/modules/auth/schema";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export function ForgotPasswordForm() {
+  const copy = useSiteCopy();
   const [isPending, startTransition] = useTransition();
   const {
     control,
@@ -34,15 +36,14 @@ export function ForgotPasswordForm() {
       formData.set("email", values.email);
       const result = await forgotPasswordFormAction({}, formData);
       if (result.error) {
-        toast.error("Could not request a reset", {
+        toast.error(copy("auth.forgot.errorTitle"), {
           description: result.error,
         });
         return;
       }
       reset({ email: "" });
-      toast.success("Check your inbox", {
-        description:
-          "If an account uses that address, we sent a password-reset link.",
+      toast.success(copy("auth.forgot.successTitle"), {
+        description: copy("auth.forgot.successDescription"),
       });
     });
   });
@@ -52,22 +53,22 @@ export function ForgotPasswordForm() {
       <ControlledInput
         control={control}
         name="email"
-        label="Email address"
+        label={copy("auth.emailLabel")}
         type="email"
         autoComplete="email"
-        placeholder="you@example.com"
+        placeholder={copy("auth.emailPlaceholder")}
         required
         autoFocus
       />
       <Button type="submit" size="lg" disabled={isPending || !isValid}>
-        {isPending ? "Sending link…" : "Send reset link"}
+        {isPending ? copy("auth.forgot.sending") : copy("auth.forgot.submit")}
       </Button>
       <Button
         variant="ghost"
         nativeButton={false}
         render={<Link href="/login" />}
       >
-        Back to sign in
+        {copy("auth.backToSignIn")}
       </Button>
     </form>
   );

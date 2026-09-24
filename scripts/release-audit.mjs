@@ -133,6 +133,19 @@ preflight.includes("PAYSTACK_SECRET_KEY")
       "Production storage/payment preflight missing",
     );
 
+const prismaSchema = read("prisma/schema.prisma");
+const cpanelPackager = read("scripts/package-cpanel.sh");
+const cpanelRuntimePreflight = read("scripts/cpanel-runtime-preflight.mjs");
+const cpanelDebianEngine = "libquery_engine-debian-openssl-1.0.x.so.node";
+prismaSchema.includes('"debian-openssl-1.0.x"') &&
+cpanelPackager.includes(cpanelDebianEngine) &&
+cpanelRuntimePreflight.includes(cpanelDebianEngine)
+  ? pass("deploy:cpanel-debian-prisma-engine")
+  : fail(
+      "deploy:cpanel-debian-prisma-engine",
+      "The cPanel client, archive, and preflight must require the Debian/OpenSSL 1.0 Prisma engine",
+    );
+
 // Secret hygiene across source/config (exclude documentation/test examples and lockfile).
 const scanRoots = [
   "app",

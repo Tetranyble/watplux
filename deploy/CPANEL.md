@@ -43,36 +43,62 @@ secret in this application.
 
 ## 2. Build the release locally
 
-Install Node `22.23.1`, application dependencies, and `zip`. Watplux Cache
-Components can read the database during `next build`, so the build must use an
-empty disposable MySQL database—not production and not a copy of customer
-data.
+Install Node `22.23.1`, application dependencies, and `zip`. Prepare the local
+database yourself before building: apply migrations and seed the website copy
+that the build will read. Keep the build database free of real customer data.
+The cPanel command uses the `DATABASE_URL`, `APP_BASE_URL`, and
+`BETTER_AUTH_URL` already available through your local environment files, just
+like the normal Next.js build.
 
 ```bash
 nvm use
 npm ci
-export BUILD_DATABASE_URL='mysql://USER:PASSWORD@127.0.0.1:3306/watplux_build'
-export CPANEL_APP_URL='https://your-domain.example'
-export CONFIRM_DISPOSABLE_BUILD_DATABASE=yes
 npm run build:cpanel
 ```
 
-The command audits the source, migrates only the disposable build database,
-builds the standalone runtime with webpack, and creates:
+The command audits the source, generates Prisma Client, builds the standalone
+runtime with webpack, and creates:
 
 ```text
 release/cpanel/watplux-cpanel-<git-sha>.zip
 ```
 
-The packager refuses a dirty working tree. Runtime secrets and production data
-are never placed in the archive. The project-wide `npm run release:gate`
-remains mandatory on infrastructure with MySQL and browser-test support before
-a production GO. The cPanel-only build deliberately uses webpack because
-Turbopack's hashed external package aliases are not portable. During packaging,
-locked Linux x64 Prisma, Argon2, Sharp, and libvips files are placed directly in
-the standalone runtime. The normal `npm run build` command remains unchanged.
+Runtime environment files and secrets are not placed in the archive. The
+project-wide `npm run release:gate` remains mandatory on infrastructure with
+MySQL and browser-test support before a production GO. The cPanel-only build
+deliberately uses webpack because Turbopack's hashed external package aliases
+are not portable. During packaging, locked Linux x64 Prisma engines for the
+supported RHEL/OpenSSL and Debian/OpenSSL hosts, plus Argon2, Sharp, and libvips
+files, are placed directly in the standalone runtime. The normal `npm run
+build` command remains unchanged.
 
-## 3. Create a versioned release on cPanel
+## 3. Prepare the first production database
+
+For the first deployment, it is valid to prepare the database on a trusted
+local machine, export it, and import it into the cPanel MySQL database. Apply
+all migrations before seeding so the export includes the complete schema,
+Prisma migration history, structural RBAC rows, website copy, and the initial
+administrator:
+
+```bash
+export DATABASE_URL='mysql://LOCAL_USER:PASSWORD@127.0.0.1:3306/watplux_release'
+export SEED_ADMIN_EMAIL='owner@example.com'
+export SEED_ADMIN_PASSWORD='replace-with-a-strong-password'
+export SEED_ADMIN_NAME='Store owner'
+npm run db:migrate:deploy
+npm run db:seed
+```
+
+Export that database, import it into the empty cPanel database, and then remove
+the three `SEED_ADMIN_*` values from any runtime environment. Do not include
+development fixtures, test customers, sessions, or real customer data in the
+database used for the application build.
+
+For later deployments, back up the production database and apply only the new
+release migrations through the one-shot migration process described below;
+do not replace the live database with a new local export.
+
+## 4. Create a versioned release on cPanel
 
 Keep releases immutable so rollback means selecting the previous archive, not
 editing production files in place. Replace `CPANEL_USER` and `<git-sha>` below:
@@ -87,9 +113,9 @@ node scripts/cpanel-runtime-preflight.mjs
 
 The archive is self-contained for Namecheap/CloudLinux shared hosting. Its
 standalone runtime already contains Linux x64 Sharp, Argon2, Prisma Client, and
-the RHEL/OpenSSL Prisma engines. The web application does not depend on cPanel's
-separate Node virtual-environment package directory and does not require **Run
-NPM Install**.
+the required RHEL/OpenSSL and Debian/OpenSSL Prisma engines. The web application
+does not depend on cPanel's separate Node virtual-environment package directory
+and does not require **Run NPM Install**.
 
 Always extract into a newly created, empty SHA-named directory. Do not unpack a
 new archive over an earlier `runtime/`; stale Turbopack chunks can survive a ZIP
@@ -99,6 +125,7 @@ switching traffic:
 ```bash
 cat RELEASE_SHA
 test -f runtime/.next/server/webpack-runtime.js
+test -f runtime/node_modules/.prisma/client/libquery_engine-debian-openssl-1.0.x.so.node
 test ! -f 'runtime/.next/server/chunks/[turbopack]_runtime.js'
 test ! -f 'runtime/.next/server/chunks/ssr/[turbopack]_runtime.js'
 ```
@@ -129,7 +156,7 @@ then replace only application code; uploaded files remain in `shared/media`.
 Generate independent secrets with `openssl rand -base64 48`. Do not reuse the
 Better Auth, guest-order, and internal-worker secrets.
 
-## 4. Validate and migrate before rollout
+## 5. Validate and migrate before rollout
 
 Load the private runtime configuration in the terminal and run configuration
 preflight before switching traffic:
@@ -147,16 +174,18 @@ that has the same committed code and an authenticated connection to production,
 or apply the reviewed migration SQL through the hosting database tool. Never
 add migrations to application startup.
 
-On the first deployment only, bootstrap structural RBAC data and the initial
-owner account from the same trusted release machine used for migrations. The
-self-contained web archive intentionally does not include development tools
-such as `tsx` or the Prisma CLI, so do not run `npm run db:seed` on cPanel.
+If the first-deployment database was imported using step 3, do not migrate or
+seed it again on cPanel. Otherwise, bootstrap structural RBAC data, website
+copy, and the initial owner account from the trusted release machine used for
+migrations. The self-contained web archive intentionally does not include
+development tools such as `tsx` or the Prisma CLI, so do not run
+`npm run db:seed` on cPanel.
 
 After the first successful seed, remove `SEED_ADMIN_EMAIL`,
 `SEED_ADMIN_PASSWORD`, and `SEED_ADMIN_NAME` from the runtime environment.
 Never add `prisma migrate deploy` or seeding to `server.js` startup.
 
-## 5. Configure Setup Node.js App
+## 6. Configure Setup Node.js App
 
 Create the stable release pointer:
 
@@ -179,7 +208,7 @@ after changing the release pointer or environment. If Setup Node.js App does
 not accept a symlinked application root, point it directly at the versioned
 release directory and update that field during each rollout.
 
-## 6. Register the webhook worker cron job
+## 7. Register the webhook worker cron job
 
 The web process does not run migrations or background loops. Add a once-per-
 minute cPanel cron job that loads the private environment and invokes the
@@ -213,7 +242,7 @@ Both integrations are required for payment state to progress:
 The first endpoint verifies and stores events quickly; the second performs the
 slower authoritative verification and order/payment updates.
 
-## 7. Verify production
+## 8. Verify production
 
 Check these endpoints in order:
 

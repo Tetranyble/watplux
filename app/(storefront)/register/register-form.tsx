@@ -10,8 +10,10 @@ import { ControlledInput } from "@/components/forms/controlled-fields";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { registerSchema, type RegisterInput } from "@/src/modules/auth/schema";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export function RegisterForm() {
+  const copy = useSiteCopy();
   const [isPending, startTransition] = useTransition();
   const {
     control,
@@ -32,7 +34,9 @@ export function RegisterForm() {
       formData.set("password", values.password);
       const result = await registerFormAction({}, formData);
       if (result?.error)
-        toast.error("Could not create account", { description: result.error });
+        toast.error(copy("auth.register.errorTitle"), {
+          description: result.error,
+        });
     });
   });
 
@@ -41,7 +45,7 @@ export function RegisterForm() {
       <ControlledInput
         control={control}
         name="name"
-        label="Full name"
+        label={copy("auth.register.name")}
         autoComplete="name"
         required
         autoFocus
@@ -49,7 +53,7 @@ export function RegisterForm() {
       <ControlledInput
         control={control}
         name="email"
-        label="Email address"
+        label={copy("auth.emailLabel")}
         type="email"
         autoComplete="email"
         required
@@ -57,22 +61,24 @@ export function RegisterForm() {
       <ControlledInput
         control={control}
         name="password"
-        label="Password"
+        label={copy("auth.passwordLabel")}
         type="password"
         autoComplete="new-password"
         required
-        description="Use at least 10 characters and a strong mix of characters."
+        description={copy("auth.passwordHelp")}
       />
       <Button type="submit" size="lg" disabled={isPending || !isValid}>
-        {isPending ? "Creating account…" : "Create account"}
+        {isPending
+          ? copy("auth.register.creating")
+          : copy("auth.register.submit")}
       </Button>
       <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
+        {copy("auth.register.existing")}{" "}
         <Link
           href="/login"
           className="font-medium text-primary-emphasis hover:underline"
         >
-          Sign in
+          {copy("auth.register.signIn")}
         </Link>
       </p>
     </form>

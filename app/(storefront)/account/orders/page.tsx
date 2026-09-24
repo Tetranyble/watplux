@@ -17,20 +17,23 @@ import {
 import { formatDate, formatMinorUnits } from "@/lib/format";
 import { getSessionUser } from "@/lib/session";
 import { listMyOrders } from "@/src/modules/order/use-cases/list-my-orders";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
-export const metadata: Metadata = {
-  title: "Your orders",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return { title: copyValue(copy, "account.orders.metaTitle") };
+}
 
 // Session-cookie-dependent — the real security boundary is this page's
 // own `getSessionUser()` call, not `proxy.ts` (see app/account/page.tsx).
 export const instant = false;
 
 export default async function OrdersPage() {
-  const user = await getSessionUser();
+  const [user, copy] = await Promise.all([getSessionUser(), getSiteCopy()]);
   if (!user) {
     redirect("/login");
   }
+  const c = (key: string) => copyValue(copy, key);
 
   const page = await listMyOrders(user, { limit: 20 });
 
@@ -39,11 +42,11 @@ export default async function OrdersPage() {
       <div className="page-shell flex flex-1">
         <EmptyState
           icon={ShoppingBag}
-          title="You haven’t placed an order yet"
-          description="Your purchases and delivery progress will appear here after checkout."
+          title={c("account.orders.emptyTitle")}
+          description={c("account.orders.emptyDescription")}
           action={
             <Button nativeButton={false} render={<Link href="/products" />}>
-              Browse products
+              {c("account.browse")}
             </Button>
           }
         />
@@ -53,15 +56,19 @@ export default async function OrdersPage() {
 
   return (
     <div className="page-shell py-8 sm:py-10">
-      <h1 className="mb-6 text-2xl font-semibold">Your orders</h1>
+      <h1 className="mb-6 text-2xl font-semibold">
+        {c("account.orders.heading")}
+      </h1>
       <div className="overflow-x-auto rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Total</TableHead>
+              <TableHead>{c("account.orders.column.order")}</TableHead>
+              <TableHead>{c("account.orders.column.date")}</TableHead>
+              <TableHead>{c("account.orders.column.status")}</TableHead>
+              <TableHead className="text-right">
+                {c("account.orders.column.total")}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

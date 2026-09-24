@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { requestPasswordResetSchema } from "@/src/modules/auth/schema";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
 export interface ForgotPasswordFormState {
   error?: string;
@@ -15,12 +16,15 @@ export async function forgotPasswordFormAction(
   _previousState: ForgotPasswordFormState,
   formData: FormData,
 ): Promise<ForgotPasswordFormState> {
+  const copy = await getSiteCopy();
   const parsed = requestPasswordResetSchema.safeParse({
     email: formData.get("email"),
   });
   if (!parsed.success) {
     return {
-      error: parsed.error.issues[0]?.message ?? "Enter a valid email address.",
+      error:
+        parsed.error.issues[0]?.message ??
+        copyValue(copy, "auth.forgot.invalid"),
     };
   }
 

@@ -5,6 +5,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { PaymentAttemptRecord } from "@/src/modules/payment/types";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
+import { interpolateCopy } from "@/src/modules/site-copy/copy";
 
 /**
  * The one authoritative source of truth for this screen: repeated calls
@@ -60,6 +62,7 @@ export function PaymentResultPanel({
   orderId: string;
   guestToken?: string;
 }) {
+  const copy = useSiteCopy();
   const [attempts, setAttempts] = useState<PaymentAttemptRecord[] | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [pollCount, setPollCount] = useState(0);
@@ -81,13 +84,13 @@ export function PaymentResultPanel({
         const body = await res.json().catch(() => null);
         if (cancelled) return;
         if (!res.ok) {
-          setFetchError(body?.error ?? "Could not check payment status.");
+          setFetchError(body?.error ?? copy("commerce.payment.checkFailed"));
           return;
         }
         setFetchError(null);
         setAttempts(body.attempts ?? []);
       } catch {
-        if (!cancelled) setFetchError("Could not check payment status.");
+        if (!cancelled) setFetchError(copy("commerce.payment.checkFailed"));
       }
     }
 
@@ -120,7 +123,7 @@ export function PaymentResultPanel({
         setFetchError(null);
         setAttempts(body.attempts ?? []);
       } else {
-        setFetchError(body?.error ?? "Could not check payment status.");
+        setFetchError(body?.error ?? copy("commerce.payment.checkFailed"));
       }
     });
   }
@@ -134,7 +137,7 @@ export function PaymentResultPanel({
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
-        setFetchError(body?.error ?? "Could not retry payment.");
+        setFetchError(body?.error ?? copy("commerce.payment.retryFailed"));
         return;
       }
       if (body.payment?.outcome === "PENDING") {
@@ -142,7 +145,7 @@ export function PaymentResultPanel({
         return;
       }
       setFetchError(
-        body.payment?.errorMessage ?? "Could not start a new payment attempt.",
+        body.payment?.errorMessage ?? copy("commerce.payment.startFailed"),
       );
     });
   }
@@ -150,20 +153,24 @@ export function PaymentResultPanel({
   if (state.kind === "success") {
     return (
       <div className="flex flex-col items-center gap-4 text-center">
-        <h1 className="text-2xl font-semibold">Payment successful</h1>
+        <h1 className="text-2xl font-semibold">
+          {copy("commerce.payment.successTitle")}
+        </h1>
         <p className="text-muted-foreground">
-          Thank you — your order is confirmed.
+          {copy("commerce.payment.successDescription")}
         </p>
         {guestToken ? (
           <p className="text-sm text-muted-foreground">
-            Order #{orderId} — save this reference for your records.
+            {interpolateCopy(copy("commerce.payment.reference"), {
+              id: orderId,
+            })}
           </p>
         ) : (
           <Button
             nativeButton={false}
             render={<Link href={`/account/orders/${orderId}`} />}
           >
-            View your order
+            {copy("commerce.payment.viewOrder")}
           </Button>
         )}
       </div>
@@ -173,12 +180,17 @@ export function PaymentResultPanel({
   if (state.kind === "failed") {
     return (
       <div className="flex flex-col items-center gap-4 text-center">
-        <h1 className="text-2xl font-semibold">Payment unsuccessful</h1>
+        <h1 className="text-2xl font-semibold">
+          {copy("commerce.payment.failedTitle")}
+        </h1>
         <p className="text-muted-foreground">
-          {state.attempt.errorMessage ?? "Your payment could not be completed."}
+          {state.attempt.errorMessage ??
+            copy("commerce.payment.failedDescription")}
         </p>
         <Button onClick={handleRetryPayment} disabled={isRetrying}>
-          {isRetrying ? "Starting…" : "Try payment again"}
+          {isRetrying
+            ? copy("commerce.payment.starting")
+            : copy("commerce.payment.retry")}
         </Button>
       </div>
     );
@@ -188,11 +200,11 @@ export function PaymentResultPanel({
     return (
       <div className="flex flex-col items-center gap-4 text-center">
         <h1 className="text-2xl font-semibold">
-          Couldn&apos;t check payment status
+          {copy("commerce.payment.checkTitle")}
         </h1>
         <p className="text-muted-foreground">{state.message}</p>
         <Button onClick={handleManualRefresh} disabled={isRetrying}>
-          Check again
+          {copy("commerce.payment.checkAgain")}
         </Button>
       </div>
     );
@@ -210,20 +222,20 @@ export function PaymentResultPanel({
     >
       <h1 className="text-2xl font-semibold">
         {pollingExhausted
-          ? "Still confirming your payment"
-          : "Confirming your payment…"}
+          ? copy("commerce.payment.slowTitle")
+          : copy("commerce.payment.confirmingTitle")}
       </h1>
       <p className="text-muted-foreground">
         {pollingExhausted
-          ? "This is taking longer than expected. You can check again, or come back later — we'll email you once it's confirmed."
-          : "We're checking with Paystack. This usually takes a few seconds."}
+          ? copy("commerce.payment.slowDescription")
+          : copy("commerce.payment.confirmingDescription")}
       </p>
       <Button
         onClick={handleManualRefresh}
         disabled={isRetrying}
         variant="outline"
       >
-        Check again
+        {copy("commerce.payment.checkAgain")}
       </Button>
     </div>
   );

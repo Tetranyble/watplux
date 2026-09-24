@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 
@@ -5,8 +7,10 @@ import { PriceDisplay } from "@/components/storefront/price-display";
 import { ProductImage } from "@/components/storefront/product-image";
 import { Badge } from "@/components/ui/badge";
 import type { ProductSummary } from "@/src/modules/catalog/types";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export function ProductCard({ product }: { product: ProductSummary }) {
+  const copy = useSiteCopy();
   return (
     <Link
       href={`/products/${product.slug}`}
@@ -23,12 +27,12 @@ export function ProductCard({ product }: { product: ProductSummary }) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-            No image yet
+            {copy("catalog.card.noImage")}
           </div>
         )}
         {product.isFeatured ? (
           <Badge className="absolute left-3 top-3 bg-brand-sun text-brand-sun-foreground hover:bg-brand-sun">
-            Featured
+            {copy("catalog.card.featured")}
           </Badge>
         ) : null}
         <span className="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-background/88 text-foreground opacity-0 shadow-sm backdrop-blur transition group-hover:opacity-100">

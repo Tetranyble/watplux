@@ -16,6 +16,7 @@ import {
   getCachedCategoryTree,
   getCachedProductListing,
 } from "@/app/_data/catalog";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 import { ProductGrid } from "@/components/storefront/product-grid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,14 +28,8 @@ export const metadata: Metadata = {
   alternates: { canonical: env.APP_BASE_URL },
 };
 
-const TRUST_SIGNALS = [
-  { icon: ShieldCheck, label: "Quality-checked equipment" },
-  { icon: Truck, label: "Delivery support" },
-  { icon: Wrench, label: "Professional installation" },
-  { icon: BatteryCharging, label: "Solar-ready components" },
-];
-
-async function FeaturedProducts() {
+async function FeaturedProducts({ copy }: { copy: Record<string, string> }) {
+  const c = (key: string) => copyValue(copy, key);
   const page = await getCachedProductListing({ limit: 8, featured: true });
   if (page.items.length === 0) return null;
 
@@ -42,13 +37,12 @@ async function FeaturedProducts() {
     <section className="page-shell section-space">
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Featured equipment</p>
+          <p className="eyebrow">{c("home.featured.eyebrow")}</p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            Built for dependable power
+            {c("home.featured.title")}
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Shop the equipment customers are choosing for homes, businesses, and
-            backup-energy projects.
+            {c("home.featured.description")}
           </p>
         </div>
         <Button
@@ -57,7 +51,7 @@ async function FeaturedProducts() {
           render={<Link href="/products" />}
           className="hidden sm:inline-flex"
         >
-          View all <ArrowRight className="size-4" />
+          {c("home.featured.viewAll")} <ArrowRight className="size-4" />
         </Button>
       </div>
       <ProductGrid products={page.items} />
@@ -65,7 +59,8 @@ async function FeaturedProducts() {
   );
 }
 
-async function CategoryTeasers() {
+async function CategoryTeasers({ copy }: { copy: Record<string, string> }) {
+  const c = (key: string) => copyValue(copy, key);
   const categories = await getCachedCategoryTree();
   const topLevel = categories.slice(0, 6);
   if (topLevel.length === 0) return null;
@@ -74,9 +69,9 @@ async function CategoryTeasers() {
     <section className="border-y bg-card/65">
       <div className="page-shell section-space">
         <div className="mb-8">
-          <p className="eyebrow">Browse quickly</p>
+          <p className="eyebrow">{c("home.categories.eyebrow")}</p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            Shop by category
+            {c("home.categories.title")}
           </h2>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -101,7 +96,25 @@ async function CategoryTeasers() {
   );
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const copy = await getSiteCopy();
+  const c = (key: string) => copyValue(copy, key);
+  const trustSignals = [
+    { icon: ShieldCheck, label: c("home.trust.quality") },
+    { icon: Truck, label: c("home.trust.delivery") },
+    { icon: Wrench, label: c("home.trust.installation") },
+    { icon: BatteryCharging, label: c("home.trust.solar") },
+  ];
+  const proofPoints = [
+    c("home.hero.proof1"),
+    c("home.hero.proof2"),
+    c("home.hero.proof3"),
+  ];
+  const flowSteps = [
+    ["01", c("home.flow.step1.title"), c("home.flow.step1.description")],
+    ["02", c("home.flow.step2.title"), c("home.flow.step2.description")],
+    ["03", c("home.flow.step3.title"), c("home.flow.step3.description")],
+  ];
   return (
     <>
       <section className="relative overflow-hidden border-b">
@@ -113,14 +126,13 @@ export default function HomePage() {
               className="h-auto gap-2 bg-background/80 px-3 py-1.5 font-semibold text-muted-foreground shadow-sm backdrop-blur"
             >
               <Sparkles className="size-3.5 text-brand-sun" />
-              Practical solar for real homes and businesses
+              {c("home.hero.badge")}
             </Badge>
             <h1 className="mt-6 text-4xl font-black tracking-[-0.04em] sm:text-5xl lg:text-6xl">
-              Reliable energy starts with the right system.
+              {c("home.hero.title")}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-              Shop solar equipment with confidence, or get help choosing and
-              installing a system that fits your actual load and budget.
+              {c("home.hero.description")}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button
@@ -128,7 +140,7 @@ export default function HomePage() {
                 nativeButton={false}
                 render={<Link href="/products" />}
               >
-                Shop solar products <ArrowRight className="size-4" />
+                {c("home.hero.primaryCta")} <ArrowRight className="size-4" />
               </Button>
               <Button
                 size="lg"
@@ -136,15 +148,11 @@ export default function HomePage() {
                 nativeButton={false}
                 render={<Link href={consultationCtaHref} />}
               >
-                Talk to an expert
+                {c("home.hero.secondaryCta")}
               </Button>
             </div>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              {[
-                "Transparent product details",
-                "Secure Paystack checkout",
-                "Support before and after purchase",
-              ].map((item) => (
+              {proofPoints.map((item) => (
                 <span key={item} className="inline-flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-primary-emphasis" />{" "}
                   {item}
@@ -161,29 +169,13 @@ export default function HomePage() {
                   <SunMedium className="size-7" />
                 </div>
                 <p className="mt-8 text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                  A better buying flow
+                  {c("home.flow.eyebrow")}
                 </p>
                 <h2 className="mt-2 text-2xl font-bold tracking-tight">
-                  Product → guidance → installation
+                  {c("home.flow.title")}
                 </h2>
                 <div className="mt-7 grid gap-3">
-                  {[
-                    [
-                      "01",
-                      "Browse equipment",
-                      "Compare useful product and solar-specific specifications.",
-                    ],
-                    [
-                      "02",
-                      "Get expert guidance",
-                      "Ask for help before you commit to the wrong system size.",
-                    ],
-                    [
-                      "03",
-                      "Install with confidence",
-                      "Move from purchase to professional installation support.",
-                    ],
-                  ].map(([number, title, copy]) => (
+                  {flowSteps.map(([number, title, description]) => (
                     <div
                       key={number}
                       className="grid grid-cols-[auto_1fr] gap-4 rounded-xl bg-muted/60 p-4"
@@ -194,7 +186,7 @@ export default function HomePage() {
                       <div>
                         <p className="text-sm font-semibold">{title}</p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          {copy}
+                          {description}
                         </p>
                       </div>
                     </div>
@@ -208,7 +200,7 @@ export default function HomePage() {
 
       <section className="page-shell py-7">
         <div className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
-          {TRUST_SIGNALS.map(({ icon: Icon, label }) => (
+          {trustSignals.map(({ icon: Icon, label }) => (
             <div key={label} className="flex items-center gap-3 text-sm">
               <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary-emphasis">
                 <Icon className="size-4" aria-hidden="true" />
@@ -220,44 +212,42 @@ export default function HomePage() {
       </section>
 
       <Suspense fallback={<FeaturedProductsSkeleton />}>
-        <FeaturedProducts />
+        <FeaturedProducts copy={copy} />
       </Suspense>
 
       <Suspense fallback={null}>
-        <CategoryTeasers />
+        <CategoryTeasers copy={copy} />
       </Suspense>
 
       <section className="page-shell section-space">
         <div className="grid overflow-hidden rounded-3xl border bg-brand-ink text-white lg:grid-cols-2">
           <div className="p-7 sm:p-10">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-sun">
-              Need help choosing?
+              {c("home.consultation.eyebrow")}
             </p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
-              Size the system before you spend.
+              {c("home.consultation.title")}
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">
-              Tell us what you need to power and we will help you narrow down
-              the right equipment and capacity.
+              {c("home.consultation.description")}
             </p>
             <Button
               className="mt-6 bg-brand-sun text-brand-sun-foreground hover:bg-brand-sun/90"
               nativeButton={false}
               render={<Link href={consultationCtaHref} />}
             >
-              Book a consultation
+              {c("home.consultation.cta")}
             </Button>
           </div>
           <div className="border-t border-white/10 p-7 sm:p-10 lg:border-l lg:border-t-0">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-sun">
-              Already purchased?
+              {c("home.installation.eyebrow")}
             </p>
             <h2 className="mt-3 text-2xl font-bold tracking-tight sm:text-3xl">
-              Complete it with professional installation.
+              {c("home.installation.title")}
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-6 text-white/70">
-              Get installation support for panels, inverters, batteries, and
-              complete solar systems.
+              {c("home.installation.description")}
             </p>
             <Button
               className="mt-6"
@@ -265,7 +255,7 @@ export default function HomePage() {
               nativeButton={false}
               render={<Link href={installationCtaHref} />}
             >
-              Request installation
+              {c("home.installation.cta")}
             </Button>
           </div>
         </div>

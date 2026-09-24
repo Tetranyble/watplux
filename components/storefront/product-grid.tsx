@@ -1,13 +1,16 @@
+"use client";
+
 import { PackageSearch, type LucideIcon } from "lucide-react";
 
 import { ProductCard } from "@/components/storefront/product-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ProductSummary } from "@/src/modules/catalog/types";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export function ProductGrid({
   products,
-  emptyTitle = "No products found",
-  emptyMessage = "Products will appear here when they become available.",
+  emptyTitle,
+  emptyMessage,
   emptyAction,
   emptyIcon: EmptyIcon = PackageSearch,
 }: {
@@ -17,13 +20,14 @@ export function ProductGrid({
   emptyAction?: React.ReactNode;
   emptyIcon?: LucideIcon;
 }) {
+  const copy = useSiteCopy();
   if (products.length === 0) {
     return (
       <EmptyState
         className="min-h-80"
         icon={EmptyIcon}
-        title={emptyTitle}
-        description={emptyMessage}
+        title={emptyTitle ?? copy("catalog.grid.emptyTitle")}
+        description={emptyMessage ?? copy("catalog.grid.emptyDescription")}
         action={emptyAction}
       />
     );

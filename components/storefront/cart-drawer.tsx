@@ -19,6 +19,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import type { CartDetail } from "@/src/modules/cart/types";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
+import { interpolateCopy } from "@/src/modules/site-copy/copy";
 
 /**
  * A quick-glance cart overlay — fetches the real `/api/cart` route itself
@@ -30,6 +32,7 @@ import type { CartDetail } from "@/src/modules/cart/types";
  * second cart implementation (docs/PHASE_9_STOREFRONT_PLAN.md §11).
  */
 export function CartDrawer({ countBadge }: { countBadge: React.ReactNode }) {
+  const copy = useSiteCopy();
   const [open, setOpen] = useState(false);
   const [cart, setCart] = useState<CartDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,12 +45,14 @@ export function CartDrawer({ countBadge }: { countBadge: React.ReactNode }) {
       const res = await fetch("/api/cart");
       const body = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(body?.error ?? "Could not load your cart.");
+        throw new Error(body?.error ?? copy("commerce.cart.loadFailed"));
       }
       setCart(body.cart ?? null);
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Could not load your cart.",
+        caught instanceof Error
+          ? caught.message
+          : copy("commerce.cart.loadFailed"),
       );
     } finally {
       setIsLoading(false);
@@ -63,7 +68,13 @@ export function CartDrawer({ countBadge }: { countBadge: React.ReactNode }) {
       }}
     >
       <SheetTrigger
-        render={<Button variant="ghost" size="icon" aria-label="View cart" />}
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={copy("commerce.cart.viewAria")}
+          />
+        }
       >
         <span className="relative">
           <ShoppingCart aria-hidden="true" />
@@ -80,18 +91,28 @@ export function CartDrawer({ countBadge }: { countBadge: React.ReactNode }) {
               <ShoppingCart className="size-4" aria-hidden="true" />
             </div>
             <div>
-              <SheetTitle>Your cart</SheetTitle>
+              <SheetTitle>{copy("commerce.cart.title")}</SheetTitle>
               <SheetDescription className="mt-0.5">
                 {cart && cart.items.length > 0
-                  ? `${cart.itemCount} item${cart.itemCount === 1 ? "" : "s"} ready to review`
-                  : "Review items before checkout"}
+                  ? interpolateCopy(copy("commerce.cart.itemsReady"), {
+                      count: cart.itemCount,
+                      itemLabel: copy(
+                        cart.itemCount === 1
+                          ? "commerce.cart.itemSingular"
+                          : "commerce.cart.itemPlural",
+                      ),
+                    })
+                  : copy("commerce.cart.review")}
               </SheetDescription>
             </div>
           </div>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
           {isLoading ? (
-            <div className="grid gap-5 py-2" aria-label="Loading cart">
+            <div
+              className="grid gap-5 py-2"
+              aria-label={copy("commerce.cart.loading")}
+            >
               {[0, 1, 2].map((item) => (
                 <div key={item} className="flex items-start gap-3">
                   <div className="min-w-0 flex-1 space-y-2">
@@ -107,11 +128,11 @@ export function CartDrawer({ countBadge }: { countBadge: React.ReactNode }) {
             <EmptyState
               className="min-h-64 px-2"
               icon={AlertCircle}
-              title="Couldn’t load your cart"
+              title={copy("commerce.cart.loadFailedTitle")}
               description={error}
               action={
                 <Button variant="outline" onClick={() => void loadCart()}>
-                  Try again
+                  {copy("commerce.cart.retry")}
                 </Button>
               }
             />
@@ -119,8 +140,8 @@ export function CartDrawer({ countBadge }: { countBadge: React.ReactNode }) {
             <EmptyState
               className="min-h-64 px-2 sm:min-h-80"
               icon={ShoppingCart}
-              title="Your cart is empty"
-              description="Add products to review them here before checkout."
+              title={copy("commerce.cart.emptyTitle")}
+              description={copy("commerce.cart.emptyDrawerDescription")}
               action={
                 <Button
                   nativeButton={false}
@@ -128,7 +149,7 @@ export function CartDrawer({ countBadge }: { countBadge: React.ReactNode }) {
                     <Link href="/products" onClick={() => setOpen(false)} />
                   }
                 >
-                  Browse products
+                  {copy("commerce.cart.browse")}
                 </Button>
               }
             />
@@ -154,7 +175,7 @@ export function CartDrawer({ countBadge }: { countBadge: React.ReactNode }) {
               nativeButton={false}
               render={<Link href="/cart" onClick={() => setOpen(false)} />}
             >
-              View full cart
+              {copy("commerce.cart.viewFull")}
             </Button>
           </SheetFooter>
         ) : null}

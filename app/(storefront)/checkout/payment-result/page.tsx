@@ -2,10 +2,12 @@ import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 
 import { PaymentResultPanel } from "@/components/storefront/payment-result-panel";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
-export const metadata: Metadata = {
-  title: "Payment status",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return { title: copyValue(copy, "commerce.payment.metaTitle") };
+}
 
 // Always reads live, authoritative server state on every visit — never
 // cached (docs/PHASE_9_STOREFRONT_PLAN.md §8/§13).

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getAuth } from "@/lib/auth";
 import { changePasswordSchema } from "@/src/modules/auth/schema";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
 export async function logoutAction(): Promise<void> {
   await getAuth().api.signOut({ headers: await headers() });
@@ -25,6 +26,7 @@ export async function changePasswordAction(
   _previous: ChangePasswordState,
   formData: FormData,
 ): Promise<ChangePasswordState> {
+  const copy = await getSiteCopy();
   const parsed = changePasswordSchema.safeParse({
     currentPassword: formData.get("currentPassword"),
     newPassword: formData.get("newPassword"),
@@ -32,7 +34,9 @@ export async function changePasswordAction(
   });
   if (!parsed.success) {
     return {
-      error: parsed.error.issues[0]?.message ?? "Check the password fields.",
+      error:
+        parsed.error.issues[0]?.message ??
+        copyValue(copy, "account.password.invalid"),
     };
   }
 
@@ -46,12 +50,11 @@ export async function changePasswordAction(
       headers: await headers(),
     });
     return {
-      success: "Password updated. Other signed-in devices were logged out.",
+      success: copyValue(copy, "account.password.success"),
     };
   } catch {
     return {
-      error:
-        "We could not change your password. Check your current password and try again.",
+      error: copyValue(copy, "account.password.failed"),
     };
   }
 }

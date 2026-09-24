@@ -11,6 +11,7 @@ import { ProductGrid } from "@/components/storefront/product-grid";
 import { Button } from "@/components/ui/button";
 import { env } from "@/lib/env";
 import { isNotFoundError } from "@/lib/errors";
+import { copyValue, getSiteCopy, interpolateCopy } from "@/app/_data/site-copy";
 
 // See app/products/[slug]/page.tsx for why this is `false`.
 export const instant = false;
@@ -30,15 +31,21 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  const copy = await getSiteCopy();
   const brand = await loadBrand(slug);
   if (!brand) return {};
   // Brand has no seoTitle/seoDescription column (unlike Category/Product)
   // — a disclosed gap, docs/PHASE_9_STOREFRONT_PLAN.md §17 — so this
   // falls back to a templated title/description rather than a
   // schema-backed one.
-  const title = `${brand.name} products`;
+  const title = interpolateCopy(copyValue(copy, "catalog.brand.metaTitle"), {
+    brand: brand.name,
+  });
   const description =
-    brand.description ?? `Shop ${brand.name} solar equipment.`;
+    brand.description ??
+    interpolateCopy(copyValue(copy, "catalog.brand.metaDescription"), {
+      brand: brand.name,
+    });
   return {
     title,
     description,
@@ -54,6 +61,8 @@ export default async function BrandPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const copy = await getSiteCopy();
+  const c = (key: string) => copyValue(copy, key);
   const brand = await loadBrand(slug);
   if (!brand) {
     notFound();
@@ -67,7 +76,7 @@ export default async function BrandPage({
 
   return (
     <div className="page-shell flex flex-1 flex-col py-10 sm:py-12 lg:py-14">
-      <p className="eyebrow">Product brand</p>
+      <p className="eyebrow">{c("catalog.brand.eyebrow")}</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">
         {brand.name}
       </h1>
@@ -80,8 +89,10 @@ export default async function BrandPage({
         <ProductGrid
           products={page.items}
           emptyIcon={Tag}
-          emptyTitle={`No ${brand.name} products yet`}
-          emptyMessage="This brand has no available products right now. Explore the full catalog or ask our team for a suitable alternative."
+          emptyTitle={interpolateCopy(c("catalog.brand.emptyTitle"), {
+            brand: brand.name,
+          })}
+          emptyMessage={c("catalog.brand.emptyDescription")}
           emptyAction={
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
               <Button
@@ -89,10 +100,10 @@ export default async function BrandPage({
                 nativeButton={false}
                 render={<Link href="/consultation" />}
               >
-                Find an alternative
+                {c("catalog.collection.alternative")}
               </Button>
               <Button nativeButton={false} render={<Link href="/products" />}>
-                Browse all products
+                {c("catalog.collection.allProducts")}
               </Button>
             </div>
           }

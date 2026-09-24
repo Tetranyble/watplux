@@ -113,16 +113,13 @@ try {
     "runtime/node_modules/.prisma/client",
   );
   const generatedClientFiles = await readdir(generatedClientDirectory);
-  if (
-    !generatedClientFiles.some(
-      (file) =>
-        file.startsWith("libquery_engine-rhel-openssl-") &&
-        file.endsWith(".so.node"),
-    )
-  ) {
-    problems.push(
-      `${generatedClientDirectory} does not contain a Prisma RHEL/OpenSSL query engine`,
-    );
+  for (const engine of [
+    "libquery_engine-debian-openssl-1.0.x.so.node",
+    "libquery_engine-rhel-openssl-3.0.x.so.node",
+  ]) {
+    if (!generatedClientFiles.includes(engine)) {
+      problems.push(`${generatedClientDirectory} does not contain ${engine}`);
+    }
   }
 } catch (error) {
   problems.push(

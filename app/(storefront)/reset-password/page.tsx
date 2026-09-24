@@ -4,11 +4,15 @@ import { ShieldCheck } from "lucide-react";
 
 import { ResetPasswordForm } from "./reset-password-form";
 import { Button } from "@/components/ui/button";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
-export const metadata: Metadata = {
-  title: "Choose a new password",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return {
+    title: copyValue(copy, "auth.reset.metaTitle"),
+    robots: { index: false, follow: false },
+  };
+}
 
 // The reset token and Better Auth error are request-specific and determine
 // whether the password form may be shown at all.
@@ -20,6 +24,8 @@ export default async function ResetPasswordPage({
   searchParams: Promise<{ token?: string; error?: string }>;
 }) {
   const { token, error } = await searchParams;
+  const copy = await getSiteCopy();
+  const c = (key: string) => copyValue(copy, key);
   const invalid = !token || Boolean(error);
 
   return (
@@ -29,27 +35,25 @@ export default async function ResetPasswordPage({
           <ShieldCheck className="size-5" aria-hidden="true" />
         </span>
         <h1 className="mt-5 text-3xl font-semibold tracking-tight">
-          {invalid ? "Reset link unavailable" : "Choose a new password"}
+          {invalid ? c("auth.reset.invalidTitle") : c("auth.reset.title")}
         </h1>
         {invalid ? (
           <>
             <p className="mb-7 mt-2 text-sm leading-6 text-muted-foreground">
-              This password-reset link is invalid or has expired. Request a new
-              link to continue.
+              {c("auth.reset.invalidDescription")}
             </p>
             <Button
               className="w-full"
               nativeButton={false}
               render={<Link href="/forgot-password" />}
             >
-              Request another link
+              {c("auth.reset.requestAgain")}
             </Button>
           </>
         ) : (
           <>
             <p className="mb-7 mt-2 text-sm leading-6 text-muted-foreground">
-              Your new password will replace the old one and sign out existing
-              sessions for your protection.
+              {c("auth.reset.description")}
             </p>
             <ResetPasswordForm token={token} />
           </>

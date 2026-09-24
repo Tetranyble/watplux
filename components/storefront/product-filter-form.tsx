@@ -36,6 +36,7 @@ import type {
   CatalogBrand,
   CatalogCategory,
 } from "@/src/modules/catalog/types";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export interface ProductFilterValues {
   category?: string;
@@ -51,49 +52,51 @@ export interface ProductFilterValues {
   sort?: string;
 }
 
-const optionalNonNegative = z.union([
-  z.literal(""),
-  z.string().regex(/^\d+$/, "Enter a whole number of zero or more."),
-]);
-const productFilterSchema = z
-  .object({
-    search: z.string().max(120).default(""),
-    category: z.string().default("all"),
-    brand: z.string().default("all"),
-    minPrice: optionalNonNegative.default(""),
-    maxPrice: optionalNonNegative.default(""),
-    powerMin: optionalNonNegative.default(""),
-    powerMax: optionalNonNegative.default(""),
-    voltage: optionalNonNegative.default(""),
-    phase: z.enum(["any", "SINGLE", "THREE"]).default("any"),
-    inStock: z.boolean().default(false),
-    sort: z
-      .enum(["newest", "featured", "price_asc", "price_desc"])
-      .default("newest"),
-  })
-  .superRefine((value, ctx) => {
-    if (
-      value.minPrice &&
-      value.maxPrice &&
-      Number(value.minPrice) > Number(value.maxPrice)
-    )
-      ctx.addIssue({
-        code: "custom",
-        path: ["maxPrice"],
-        message: "Maximum price must be at least the minimum price.",
-      });
-    if (
-      value.powerMin &&
-      value.powerMax &&
-      Number(value.powerMin) > Number(value.powerMax)
-    )
-      ctx.addIssue({
-        code: "custom",
-        path: ["powerMax"],
-        message: "Maximum power must be at least the minimum power.",
-      });
-  });
-type FormValues = z.input<typeof productFilterSchema>;
+function buildProductFilterSchema(copy: (key: string) => string) {
+  const optionalNonNegative = z.union([
+    z.literal(""),
+    z.string().regex(/^\d+$/, copy("catalog.filters.wholeNumber")),
+  ]);
+  return z
+    .object({
+      search: z.string().max(120).default(""),
+      category: z.string().default("all"),
+      brand: z.string().default("all"),
+      minPrice: optionalNonNegative.default(""),
+      maxPrice: optionalNonNegative.default(""),
+      powerMin: optionalNonNegative.default(""),
+      powerMax: optionalNonNegative.default(""),
+      voltage: optionalNonNegative.default(""),
+      phase: z.enum(["any", "SINGLE", "THREE"]).default("any"),
+      inStock: z.boolean().default(false),
+      sort: z
+        .enum(["newest", "featured", "price_asc", "price_desc"])
+        .default("newest"),
+    })
+    .superRefine((value, ctx) => {
+      if (
+        value.minPrice &&
+        value.maxPrice &&
+        Number(value.minPrice) > Number(value.maxPrice)
+      )
+        ctx.addIssue({
+          code: "custom",
+          path: ["maxPrice"],
+          message: copy("catalog.filters.maxPrice"),
+        });
+      if (
+        value.powerMin &&
+        value.powerMax &&
+        Number(value.powerMin) > Number(value.powerMax)
+      )
+        ctx.addIssue({
+          code: "custom",
+          path: ["powerMax"],
+          message: copy("catalog.filters.maxPower"),
+        });
+    });
+}
+type FormValues = z.input<ReturnType<typeof buildProductFilterSchema>>;
 
 export function ProductFilterForm({
   categories,
@@ -110,6 +113,11 @@ export function ProductFilterForm({
   showHeader?: boolean;
   onNavigate?: () => void;
 }) {
+  const copy = useSiteCopy();
+  const productFilterSchema = useMemo(
+    () => buildProductFilterSchema(copy),
+    [copy],
+  );
   const router = useRouter();
   const defaults = useMemo<FormValues>(
     () => ({
@@ -216,74 +224,80 @@ export function ProductFilterForm({
       <Card size="sm" className={cn("gap-0 shadow-none", className)}>
         {showHeader ? (
           <CardHeader className="border-b pb-4">
-            <CardTitle>Filters</CardTitle>
-            <CardDescription>Refine the equipment shown.</CardDescription>
+            <CardTitle>{copy("catalog.filters.title")}</CardTitle>
+            <CardDescription>
+              {copy("catalog.filters.description")}
+            </CardDescription>
           </CardHeader>
         ) : null}
         <CardContent className="space-y-5 py-5">
           <ControlledInput
             control={control}
             name="search"
-            label="Search"
+            label={copy("catalog.filters.search")}
             type="search"
-            placeholder="Panels, inverters, batteries…"
+            placeholder={copy("catalog.filters.searchPlaceholder")}
           />
           <ControlledSearchSelect
             control={control}
             name="category"
-            label="Category"
+            label={copy("catalog.filters.category")}
             options={categories.map((item) => ({
               value: item.slug,
               label: item.name,
             }))}
             clearValue="all"
-            clearLabel="All categories"
+            clearLabel={copy("catalog.filters.allCategories")}
             clearResult="value"
-            placeholder="All categories"
+            placeholder={copy("catalog.filters.allCategories")}
           />
           <ControlledSearchSelect
             control={control}
             name="brand"
-            label="Brand"
+            label={copy("catalog.filters.brand")}
             options={brands.map((item) => ({
               value: item.slug,
               label: item.name,
             }))}
             clearValue="all"
-            clearLabel="All brands"
+            clearLabel={copy("catalog.filters.allBrands")}
             clearResult="value"
-            placeholder="All brands"
+            placeholder={copy("catalog.filters.allBrands")}
           />
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Price range (₦)</legend>
+            <legend className="text-sm font-medium">
+              {copy("catalog.filters.priceRange")}
+            </legend>
             <div className="grid grid-cols-2 gap-3">
               <ControlledInput
                 control={control}
                 name="minPrice"
-                label="Minimum"
+                label={copy("catalog.filters.minimum")}
                 inputMode="numeric"
               />
               <ControlledInput
                 control={control}
                 name="maxPrice"
-                label="Maximum"
+                label={copy("catalog.filters.maximum")}
                 inputMode="numeric"
               />
             </div>
           </fieldset>
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Power range (W)</legend>
+            <legend className="text-sm font-medium">
+              {copy("catalog.filters.powerRange")}
+            </legend>
             <div className="grid grid-cols-2 gap-3">
               <ControlledInput
                 control={control}
                 name="powerMin"
-                label="Minimum"
+                label={copy("catalog.filters.minimum")}
                 inputMode="numeric"
               />
               <ControlledInput
                 control={control}
                 name="powerMax"
-                label="Maximum"
+                label={copy("catalog.filters.maximum")}
                 inputMode="numeric"
               />
             </div>
@@ -291,47 +305,47 @@ export function ProductFilterForm({
           <ControlledInput
             control={control}
             name="voltage"
-            label="Voltage (V)"
+            label={copy("catalog.filters.voltage")}
             inputMode="numeric"
           />
           <ControlledSelect
             control={control}
             name="phase"
-            label="Phase"
+            label={copy("catalog.filters.phase")}
             options={[
-              { value: "SINGLE", label: "Single-phase" },
-              { value: "THREE", label: "Three-phase" },
+              { value: "SINGLE", label: copy("catalog.filters.singlePhase") },
+              { value: "THREE", label: copy("catalog.filters.threePhase") },
             ]}
             clearValue="any"
-            clearLabel="Any phase"
+            clearLabel={copy("catalog.filters.anyPhase")}
             clearResult="value"
           />
           <ControlledCheckbox
             control={control}
             name="inStock"
-            label="In-stock products only"
+            label={copy("catalog.filters.stock")}
           />
           <ControlledSelect
             control={control}
             name="sort"
-            label="Sort by"
+            label={copy("catalog.filters.sort")}
             options={[
-              { value: "newest", label: "Newest" },
-              { value: "featured", label: "Featured first" },
-              { value: "price_asc", label: "Price: low to high" },
-              { value: "price_desc", label: "Price: high to low" },
+              { value: "newest", label: copy("catalog.filters.newest") },
+              { value: "featured", label: copy("catalog.filters.featured") },
+              { value: "price_asc", label: copy("catalog.filters.priceAsc") },
+              { value: "price_desc", label: copy("catalog.filters.priceDesc") },
             ]}
           />
         </CardContent>
         <CardFooter className="grid gap-2 border-t pt-4">
           <Button type="submit" disabled={!isValid} className="w-full">
             <Search className="size-4" />
-            Apply filters
+            {copy("catalog.filters.apply")}
           </Button>
           {hasActiveFilters ? (
             <Button type="button" variant="outline" onClick={clear}>
               <RotateCcw className="size-4" />
-              Clear filters
+              {copy("catalog.filters.clear")}
             </Button>
           ) : null}
         </CardFooter>
@@ -364,6 +378,7 @@ export function ProductFilterDrawer({
   brands: CatalogBrand[];
   values: ProductFilterValues;
 }) {
+  const copy = useSiteCopy();
   const [open, setOpen] = useState(false);
   const activeCount = countActiveFilters(values);
 
@@ -374,12 +389,12 @@ export function ProductFilterDrawer({
           <Button
             variant="outline"
             className="md:hidden"
-            aria-label="Filter products"
+            aria-label={copy("catalog.filters.filterAria")}
           />
         }
       >
         <SlidersHorizontal aria-hidden="true" />
-        Filters
+        {copy("catalog.filters.title")}
         {activeCount > 0 ? (
           <Badge variant="secondary">{activeCount}</Badge>
         ) : null}
@@ -389,9 +404,9 @@ export function ProductFilterDrawer({
         className="w-[min(92vw,24rem)] gap-0 bg-background text-foreground"
       >
         <SheetHeader className="border-b pr-12">
-          <SheetTitle>Filter products</SheetTitle>
+          <SheetTitle>{copy("catalog.filters.drawerTitle")}</SheetTitle>
           <SheetDescription>
-            Narrow the catalog by equipment details and availability.
+            {copy("catalog.filters.drawerDescription")}
           </SheetDescription>
         </SheetHeader>
         <div className="min-h-0 flex-1 overflow-y-auto p-4">

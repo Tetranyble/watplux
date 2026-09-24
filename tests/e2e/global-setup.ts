@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { config } from "dotenv";
 
 import { seedRbacData } from "../../prisma/seed-data";
+import { seedSiteCopy } from "../../prisma/site-copy-seed";
 
 /**
  * Makes the browser/API release suite independently runnable. We seed only
@@ -12,6 +13,7 @@ export default async function globalSetup(): Promise<void> {
   const db = new PrismaClient();
   try {
     await seedRbacData(db);
+    await seedSiteCopy(db);
   } finally {
     await db.$disconnect();
   }

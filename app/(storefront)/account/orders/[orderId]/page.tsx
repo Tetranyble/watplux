@@ -8,10 +8,12 @@ import { isForbiddenError, isNotFoundError } from "@/lib/errors";
 import { getSessionUser } from "@/lib/session";
 import { idParamSchema } from "@/src/modules/order/schema";
 import { getOrderById } from "@/src/modules/order/use-cases/get-order-by-id";
+import { copyValue, getSiteCopy, interpolateCopy } from "@/app/_data/site-copy";
 
-export const metadata: Metadata = {
-  title: "Order detail",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const copy = await getSiteCopy();
+  return { title: copyValue(copy, "account.order.metaTitle") };
+}
 
 export const instant = false;
 
@@ -20,10 +22,11 @@ export default async function OrderDetailPage({
 }: {
   params: Promise<{ orderId: string }>;
 }) {
-  const user = await getSessionUser();
+  const [user, copy] = await Promise.all([getSessionUser(), getSiteCopy()]);
   if (!user) {
     redirect("/login");
   }
+  const c = (key: string) => copyValue(copy, key);
 
   const { orderId } = await params;
   const parsedOrderId = idParamSchema.safeParse(orderId);
@@ -51,10 +54,14 @@ export default async function OrderDetailPage({
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold">
-              Order {order.orderNumber}
+              {interpolateCopy(c("account.order.heading"), {
+                number: order.orderNumber,
+              })}
             </h1>
             <p className="text-sm text-muted-foreground">
-              Placed {formatDate(order.createdAt)}
+              {interpolateCopy(c("account.order.placed"), {
+                date: formatDate(order.createdAt),
+              })}
             </p>
           </div>
           <OrderStatusBadge status={order.status} />
@@ -95,28 +102,36 @@ export default async function OrderDetailPage({
 
         <div className="mb-8 flex flex-col gap-1 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
+            <span className="text-muted-foreground">
+              {c("account.order.subtotal")}
+            </span>
             <span>{formatMinorUnits(order.subtotalMinor, order.currency)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Delivery</span>
+            <span className="text-muted-foreground">
+              {c("account.order.delivery")}
+            </span>
             <span>
               {formatMinorUnits(order.deliveryFeeMinor, order.currency)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Tax</span>
+            <span className="text-muted-foreground">
+              {c("account.order.tax")}
+            </span>
             <span>{formatMinorUnits(order.taxMinor, order.currency)}</span>
           </div>
           <div className="mt-1 flex justify-between border-t pt-1 font-semibold">
-            <span>Total</span>
+            <span>{c("account.order.total")}</span>
             <span>{formatMinorUnits(order.totalMinor, order.currency)}</span>
           </div>
         </div>
 
         {order.addresses.length > 0 ? (
           <div className="mb-8">
-            <h2 className="mb-2 text-sm font-semibold">Shipping address</h2>
+            <h2 className="mb-2 text-sm font-semibold">
+              {c("account.order.shipping")}
+            </h2>
             {order.addresses
               .filter((address) => address.type === "SHIPPING")
               .map((address) => (
@@ -139,7 +154,9 @@ export default async function OrderDetailPage({
 
         {order.statusHistory.length > 0 ? (
           <div>
-            <h2 className="mb-2 text-sm font-semibold">Status history</h2>
+            <h2 className="mb-2 text-sm font-semibold">
+              {c("account.order.history")}
+            </h2>
             <ul className="flex flex-col gap-1 text-sm text-muted-foreground">
               {order.statusHistory.map((entry) => (
                 <li key={entry.id}>

@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
-function initials(name: string, email: string) {
-  const value = name.trim() || email.split("@")[0] || "User";
+function initials(name: string, email: string, fallback: string) {
+  const value = name.trim() || email.split("@")[0] || fallback;
   return value
     .split(/\s+/)
     .slice(0, 2)
@@ -28,6 +29,7 @@ export function AvatarUpload({
   email: string;
   image: string | null;
 }) {
+  const copy = useSiteCopy();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [currentImage, setCurrentImage] = useState(image);
@@ -49,15 +51,17 @@ export function AvatarUpload({
         error?: string;
       } | null;
       if (!response.ok || !result?.image) {
-        throw new Error(result?.error ?? "Could not update your photo.");
+        throw new Error(result?.error ?? copy("account.avatar.updateFailed"));
       }
       setCurrentImage(result.image);
-      toast.success("Profile photo updated");
+      toast.success(copy("account.avatar.updated"));
       router.refresh();
     } catch (error) {
-      toast.error("Upload failed", {
+      toast.error(copy("account.avatar.uploadFailed"), {
         description:
-          error instanceof Error ? error.message : "Please try again.",
+          error instanceof Error
+            ? error.message
+            : copy("account.avatar.tryAgain"),
       });
     } finally {
       setUploading(false);
@@ -75,16 +79,18 @@ export function AvatarUpload({
         const result = (await response.json().catch(() => null)) as {
           error?: string;
         } | null;
-        throw new Error(result?.error ?? "Could not remove your photo.");
+        throw new Error(result?.error ?? copy("account.avatar.removeFailed"));
       }
       setCurrentImage(null);
       setConfirmingRemove(false);
-      toast.success("Profile photo removed");
+      toast.success(copy("account.avatar.removed"));
       router.refresh();
     } catch (error) {
-      toast.error("Could not remove photo", {
+      toast.error(copy("account.avatar.removeError"), {
         description:
-          error instanceof Error ? error.message : "Please try again.",
+          error instanceof Error
+            ? error.message
+            : copy("account.avatar.tryAgain"),
       });
     } finally {
       setRemoving(false);
@@ -96,14 +102,13 @@ export function AvatarUpload({
       <Avatar className="size-20 ring-1 ring-border">
         {currentImage ? <AvatarImage src={currentImage} alt="" /> : null}
         <AvatarFallback className="text-lg">
-          {initials(name, email)}
+          {initials(name, email, copy("account.userFallback"))}
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
-        <p className="font-medium">Profile photo</p>
+        <p className="font-medium">{copy("account.avatar.title")}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload a JPEG, PNG, WebP, or AVIF image. It will be cropped to a
-          square and optimized automatically.
+          {copy("account.avatar.description")}
         </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Input
@@ -129,10 +134,10 @@ export function AvatarUpload({
               <ImagePlus aria-hidden="true" />
             )}
             {uploading
-              ? "Uploading…"
+              ? copy("account.avatar.uploading")
               : currentImage
-                ? "Change photo"
-                : "Upload photo"}
+                ? copy("account.avatar.change")
+                : copy("account.avatar.upload")}
           </Button>
           {currentImage ? (
             <Button
@@ -144,7 +149,7 @@ export function AvatarUpload({
               onClick={() => setConfirmingRemove(true)}
             >
               <Trash2 aria-hidden="true" />
-              Remove
+              {copy("account.avatar.remove")}
             </Button>
           ) : null}
         </div>
@@ -153,9 +158,9 @@ export function AvatarUpload({
       <ConfirmDialog
         open={confirmingRemove}
         onOpenChange={setConfirmingRemove}
-        title="Remove profile photo?"
-        description="Your initials will be shown until you upload another photo."
-        confirmLabel="Remove photo"
+        title={copy("account.avatar.confirmTitle")}
+        description={copy("account.avatar.confirmDescription")}
+        confirmLabel={copy("account.avatar.confirm")}
         destructive
         busy={removing}
         onConfirm={remove}

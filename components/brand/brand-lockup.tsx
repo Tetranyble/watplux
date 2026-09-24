@@ -1,12 +1,17 @@
 import { BrandMark } from "@/components/brand/brand-mark";
 import { cn } from "@/lib/utils";
-import { siteConfig } from "@/lib/site-config";
 
-export function BrandLockup({ className }: { className?: string }) {
+export function BrandLockup({
+  className,
+  siteName,
+}: {
+  className?: string;
+  siteName: string;
+}) {
   return (
     <span className={cn("inline-flex items-center", className)}>
       <BrandMark />
-      <span className="sr-only">{siteConfig.name}</span>
+      <span className="sr-only">{siteName}</span>
     </span>
   );
 }

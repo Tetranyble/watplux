@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getSessionUser } from "@/lib/session";
+import { copyValue, getSiteCopy, interpolateCopy } from "@/app/_data/site-copy";
 
 /**
  * Genuinely dynamic (session-cookie-dependent) header/mobile-nav slice —
@@ -27,8 +28,8 @@ import { getSessionUser } from "@/lib/session";
  * (`lib/session.ts`), so rendering it here and in a page body in the same
  * request tree costs one DB round-trip, not two.
  */
-function initials(name: string, email: string) {
-  const value = name.trim() || email.split("@")[0] || "User";
+function initials(name: string, email: string, fallback: string) {
+  const value = name.trim() || email.split("@")[0] || fallback;
   return value
     .split(/\s+/)
     .slice(0, 2)
@@ -41,16 +42,17 @@ export async function AccountNavArea({
 }: {
   variant?: "desktop" | "mobile";
 }) {
-  const user = await getSessionUser();
+  const [user, copy] = await Promise.all([getSessionUser(), getSiteCopy()]);
+  const c = (key: string) => copyValue(copy, key);
 
   if (!user) {
     if (variant === "mobile") {
       return (
         <div className="grid gap-3">
           <div>
-            <p className="text-sm font-semibold">Your Watplux account</p>
+            <p className="text-sm font-semibold">{c("account.nav.title")}</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Sign in to track orders and service requests.
+              {c("account.nav.description")}
             </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -60,7 +62,7 @@ export async function AccountNavArea({
               nativeButton={false}
               render={<Link href="/register" />}
             >
-              Create account
+              {c("account.nav.create")}
             </Button>
             <Button
               size="sm"
@@ -68,7 +70,7 @@ export async function AccountNavArea({
               render={<Link href="/login" />}
             >
               <LogIn aria-hidden="true" />
-              Log in
+              {c("account.nav.login")}
             </Button>
           </div>
         </div>
@@ -82,7 +84,7 @@ export async function AccountNavArea({
         nativeButton={false}
         render={<Link href="/login" />}
       >
-        Log in
+        {c("account.nav.login")}
       </Button>
     );
   }
@@ -93,7 +95,9 @@ export async function AccountNavArea({
         <div className="flex items-center gap-3 px-1">
           <Avatar className="size-9 ring-1 ring-border">
             {user.image ? <AvatarImage src={user.image} alt="" /> : null}
-            <AvatarFallback>{initials(user.name, user.email)}</AvatarFallback>
+            <AvatarFallback>
+              {initials(user.name, user.email, c("account.userFallback"))}
+            </AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{user.name}</p>
@@ -111,7 +115,7 @@ export async function AccountNavArea({
               render={<Link href="/admin" />}
             >
               <LayoutDashboard aria-hidden="true" />
-              Admin dashboard
+              {c("account.nav.admin")}
             </Button>
           ) : null}
           <Button
@@ -121,7 +125,7 @@ export async function AccountNavArea({
             render={<Link href="/account" />}
           >
             <User aria-hidden="true" />
-            Account settings
+            {c("account.nav.settings")}
           </Button>
           <Button
             variant="ghost"
@@ -130,7 +134,7 @@ export async function AccountNavArea({
             render={<Link href="/account/orders" />}
           >
             <Package aria-hidden="true" />
-            My orders
+            {c("account.nav.orders")}
           </Button>
           <Button
             variant="ghost"
@@ -139,7 +143,7 @@ export async function AccountNavArea({
             render={<Link href="/account/service-requests" />}
           >
             <ClipboardList aria-hidden="true" />
-            Service requests
+            {c("account.nav.services")}
           </Button>
         </div>
         <form action={logoutAction}>
@@ -149,7 +153,7 @@ export async function AccountNavArea({
             className="w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut aria-hidden="true" />
-            Sign out
+            {c("account.nav.signOut")}
           </Button>
         </form>
       </div>
@@ -163,13 +167,17 @@ export async function AccountNavArea({
           <Button
             variant="ghost"
             size="icon"
-            aria-label={`Account menu for ${user.email}`}
+            aria-label={interpolateCopy(c("account.nav.menuAria"), {
+              email: user.email,
+            })}
           />
         }
       >
         <Avatar className="size-8 ring-1 ring-border">
           {user.image ? <AvatarImage src={user.image} alt="" /> : null}
-          <AvatarFallback>{initials(user.name, user.email)}</AvatarFallback>
+          <AvatarFallback>
+            {initials(user.name, user.email, c("account.userFallback"))}
+          </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -180,7 +188,7 @@ export async function AccountNavArea({
             className="gap-2"
           >
             <LayoutDashboard aria-hidden="true" />
-            Admin dashboard
+            {c("account.nav.admin")}
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem
@@ -189,7 +197,7 @@ export async function AccountNavArea({
           className="gap-2"
         >
           <User aria-hidden="true" />
-          Account
+          {c("account.nav.account")}
         </DropdownMenuItem>
         <DropdownMenuItem
           nativeButton={false}
@@ -197,7 +205,7 @@ export async function AccountNavArea({
           className="gap-2"
         >
           <Package aria-hidden="true" />
-          Orders
+          {c("account.nav.ordersShort")}
         </DropdownMenuItem>
         <DropdownMenuItem
           nativeButton={false}
@@ -205,7 +213,7 @@ export async function AccountNavArea({
           className="gap-2"
         >
           <ClipboardList aria-hidden="true" />
-          Service requests
+          {c("account.nav.services")}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -216,7 +224,7 @@ export async function AccountNavArea({
             variant="ghost"
             className="h-auto w-full justify-start p-0 font-normal"
           >
-            Log out
+            {c("account.sessions.logout")}
           </Button>
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -42,9 +42,10 @@ const createAuth = () =>
       revokeSessionsOnPasswordReset: true,
       resetPasswordTokenExpiresIn: 60 * 60,
       sendResetPassword: async ({ user, url }) => {
+        const message = await passwordResetEmail(user.name, url);
         await sendTransactionalEmail({
           to: user.email,
-          ...passwordResetEmail(user.name, url),
+          ...message,
         });
       },
       password: {
@@ -68,9 +69,10 @@ const createAuth = () =>
       autoSignInAfterVerification: false,
       expiresIn: 60 * 60,
       sendVerificationEmail: async ({ user, url }) => {
+        const message = await verificationEmail(user.name, url);
         await sendTransactionalEmail({
           to: user.email,
-          ...verificationEmail(user.name, url),
+          ...message,
         });
       },
     },

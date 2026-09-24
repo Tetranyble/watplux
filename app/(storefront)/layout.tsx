@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { AccountNavArea } from "@/app/_components/account-nav-area";
 import { CartCountBadge } from "@/app/_components/cart-count-badge";
 import { getCachedCurrentYear } from "@/app/_data/misc";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
+import { SiteCopyProvider } from "@/components/storefront/site-copy-provider";
 import { SiteFooter } from "@/components/storefront/site-footer";
 import { SiteHeader } from "@/components/storefront/site-header";
 
@@ -21,14 +23,17 @@ export default async function StorefrontLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const currentYear = await getCachedCurrentYear();
+  const [currentYear, copy] = await Promise.all([
+    getCachedCurrentYear(),
+    getSiteCopy(),
+  ]);
   return (
-    <>
+    <SiteCopyProvider copy={copy}>
       <a
         href="#main-content"
         className="sr-only fixed left-3 top-3 z-[100] rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground focus:not-sr-only"
       >
-        Skip to main content
+        {copyValue(copy, "chrome.skipToMain")}
       </a>
       {/*
         The header composes two genuinely dynamic, cookie-dependent
@@ -38,6 +43,7 @@ export default async function StorefrontLayout({
         prerendered — only these two slices stream in per-request.
       */}
       <SiteHeader
+        copy={copy}
         cartSlot={
           <Suspense fallback={null}>
             <CartCountBadge />
@@ -59,7 +65,7 @@ export default async function StorefrontLayout({
       <main id="main-content" tabIndex={-1} className="flex flex-1 flex-col">
         {children}
       </main>
-      <SiteFooter currentYear={currentYear} />
-    </>
+      <SiteFooter currentYear={currentYear} copy={copy} />
+    </SiteCopyProvider>
   );
 }

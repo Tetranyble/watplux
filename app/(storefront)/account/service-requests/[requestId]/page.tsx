@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSessionUser } from "@/lib/session";
 import { getServiceRequest } from "@/src/modules/service-request/use-cases/get-service-request";
+import { copyValue, getSiteCopy, interpolateCopy } from "@/app/_data/site-copy";
 
 export const instant = false;
 
@@ -14,8 +15,9 @@ export default async function ServiceRequestDetailPage({
 }: {
   params: Promise<{ requestId: string }>;
 }) {
-  const actor = await getSessionUser();
+  const [actor, copy] = await Promise.all([getSessionUser(), getSiteCopy()]);
   if (!actor) redirect("/login");
+  const c = (key: string) => copyValue(copy, key);
   const { requestId } = await params;
   let item;
   try {
@@ -30,46 +32,60 @@ export default async function ServiceRequestDetailPage({
         nativeButton={false}
         render={<Link href="/account/service-requests" />}
       >
-        ← All requests
+        {c("account.request.all")}
       </Button>
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">
             {item.serviceType.replaceAll("_", " ")}
           </h1>
-          <p className="mt-2 text-muted-foreground">Request #{item.id}</p>
+          <p className="mt-2 text-muted-foreground">
+            {interpolateCopy(c("account.request.reference"), { id: item.id })}
+          </p>
         </div>
         <Badge>{item.status.replaceAll("_", " ")}</Badge>
       </div>
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle>Request details</CardTitle>
+          <CardTitle>{c("account.request.details")}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-5 sm:grid-cols-2">
-          <Detail label="Property" value={item.propertyType} />
-          <Detail label="Location" value={item.location} />
           <Detail
-            label="Desired backup"
+            label={c("account.request.property")}
+            value={item.propertyType}
+          />
+          <Detail label={c("account.request.location")} value={item.location} />
+          <Detail
+            label={c("account.request.backup")}
             value={
               item.desiredBackupHours
-                ? `${item.desiredBackupHours} hours`
+                ? interpolateCopy(c("account.request.hours"), {
+                    hours: item.desiredBackupHours,
+                  })
                 : null
             }
           />
-          <Detail label="Budget" value={item.budgetRange} />
           <Detail
-            label="Current electricity"
+            label={c("account.request.budget")}
+            value={item.budgetRange}
+          />
+          <Detail
+            label={c("account.request.electricity")}
             value={item.currentElectricitySituation}
             wide
           />
-          <Detail label="Appliances" value={item.appliances} wide />
           <Detail
-            label="Existing equipment"
+            label={c("account.request.appliances")}
+            value={item.appliances}
+            wide
+          />
+          <Detail
+            label={c("account.request.equipment")}
             value={item.existingEquipment}
             wide
           />
           <Detail
-            label="Additional information"
+            label={c("account.request.additional")}
             value={item.additionalInfo}
             wide
           />

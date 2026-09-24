@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { createServiceRequestSchema } from "@/src/modules/service-request/schema";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 type InputValues = z.input<typeof createServiceRequestSchema>;
 type OutputValues = z.output<typeof createServiceRequestSchema>;
@@ -40,6 +41,7 @@ export function ServiceRequestForm({
   serviceType: "CONSULTATION" | "INSTALLATION";
   authenticated: boolean;
 }) {
+  const copy = useSiteCopy();
   const [isPending, startTransition] = useTransition();
   const schema = useMemo(
     () =>
@@ -49,22 +51,22 @@ export function ServiceRequestForm({
           ctx.addIssue({
             code: "custom",
             path: ["guestName"],
-            message: "Full name is required.",
+            message: copy("services.form.nameRequired"),
           });
         if (!value.guestEmail)
           ctx.addIssue({
             code: "custom",
             path: ["guestEmail"],
-            message: "Email is required.",
+            message: copy("services.form.emailRequired"),
           });
         if (!value.guestPhone)
           ctx.addIssue({
             code: "custom",
             path: ["guestPhone"],
-            message: "Phone is required.",
+            message: copy("services.form.phoneRequired"),
           });
       }),
-    [authenticated],
+    [authenticated, copy],
   );
 
   const {
@@ -113,7 +115,9 @@ export function ServiceRequestForm({
       }
       const result = await submitServiceRequest({}, formData);
       if (result?.error)
-        toast.error("Could not submit request", { description: result.error });
+        toast.error(copy("services.form.submitErrorTitle"), {
+          description: result.error,
+        });
     });
   });
 
@@ -122,16 +126,16 @@ export function ServiceRequestForm({
       {!authenticated ? (
         <Card>
           <CardHeader>
-            <CardTitle>Your contact details</CardTitle>
+            <CardTitle>{copy("services.form.contactTitle")}</CardTitle>
             <CardDescription>
-              We use these details to follow up on this request.
+              {copy("services.form.contactDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <ControlledInput
               control={control}
               name="guestName"
-              label="Full name"
+              label={copy("services.form.fullName")}
               autoComplete="name"
               required
               className="sm:col-span-2"
@@ -139,7 +143,7 @@ export function ServiceRequestForm({
             <ControlledInput
               control={control}
               name="guestEmail"
-              label="Email"
+              label={copy("services.form.email")}
               type="email"
               autoComplete="email"
               required
@@ -147,7 +151,7 @@ export function ServiceRequestForm({
             <ControlledInput
               control={control}
               name="guestPhone"
-              label="Phone"
+              label={copy("services.form.phone")}
               type="tel"
               autoComplete="tel"
               required
@@ -158,39 +162,42 @@ export function ServiceRequestForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Property and power needs</CardTitle>
+          <CardTitle>{copy("services.form.needsTitle")}</CardTitle>
           <CardDescription>
-            Give us enough context to prepare before we contact you.
+            {copy("services.form.needsDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <ControlledSelect
             control={control}
             name="propertyType"
-            label="Property type"
+            label={copy("services.form.propertyType")}
             options={[
-              { value: "RESIDENTIAL", label: "Residential" },
-              { value: "COMMERCIAL", label: "Commercial" },
-              { value: "INDUSTRIAL", label: "Industrial" },
+              {
+                value: "RESIDENTIAL",
+                label: copy("services.form.residential"),
+              },
+              { value: "COMMERCIAL", label: copy("services.form.commercial") },
+              { value: "INDUSTRIAL", label: copy("services.form.industrial") },
             ]}
           />
           <ControlledInput
             control={control}
             name="location"
-            label="Location"
-            placeholder="Area, city or full address"
+            label={copy("services.form.location")}
+            placeholder={copy("services.form.locationPlaceholder")}
           />
           <ControlledTextarea
             control={control}
             name="currentElectricitySituation"
-            label="Current electricity situation"
+            label={copy("services.form.electricity")}
             rows={3}
             className="sm:col-span-2"
           />
           <ControlledInput
             control={control}
             name="estimatedMonthlyUsageKwh"
-            label="Estimated monthly usage (kWh)"
+            label={copy("services.form.usage")}
             type="number"
             min="0"
             step="0.01"
@@ -200,7 +207,7 @@ export function ServiceRequestForm({
           <ControlledInput
             control={control}
             name="desiredBackupHours"
-            label="Desired backup time (hours)"
+            label={copy("services.form.backup")}
             type="number"
             min="0"
             step="0.5"
@@ -210,34 +217,34 @@ export function ServiceRequestForm({
           <ControlledTextarea
             control={control}
             name="appliances"
-            label="Appliances / loads"
+            label={copy("services.form.appliances")}
             rows={4}
-            description="List the major equipment you want powered."
+            description={copy("services.form.appliancesHelp")}
             className="sm:col-span-2"
           />
           <ControlledTextarea
             control={control}
             name="existingEquipment"
-            label="Existing solar equipment"
+            label={copy("services.form.equipment")}
             rows={3}
             className="sm:col-span-2"
           />
           <ControlledInput
             control={control}
             name="budgetRange"
-            label="Budget range"
-            placeholder="Optional"
+            label={copy("services.form.budget")}
+            placeholder={copy("services.form.optional")}
           />
           <ControlledInput
             control={control}
             name="preferredAppointmentAt"
-            label="Preferred appointment"
+            label={copy("services.form.appointment")}
             type="datetime-local"
           />
           <ControlledTextarea
             control={control}
             name="additionalInfo"
-            label="Anything else we should know?"
+            label={copy("services.form.additional")}
             rows={4}
             className="sm:col-span-2"
           />
@@ -246,10 +253,10 @@ export function ServiceRequestForm({
 
       <Button type="submit" size="lg" disabled={isPending || !isValid}>
         {isPending
-          ? "Submitting…"
+          ? copy("services.form.submitting")
           : serviceType === "INSTALLATION"
-            ? "Request installation"
-            : "Request consultation"}
+            ? copy("services.form.installationSubmit")
+            : copy("services.form.consultationSubmit")}
       </Button>
     </form>
   );

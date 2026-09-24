@@ -1,19 +1,23 @@
+"use client";
+
 import Link from "next/link";
 import { Tags } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export default function BrandNotFound() {
+  const copy = useSiteCopy();
   return (
     <div className="page-shell flex flex-1">
       <EmptyState
         icon={Tags}
-        title="Brand not found"
-        description="This brand doesn’t exist or is no longer available."
+        title={copy("catalog.notFound.brandTitle")}
+        description={copy("catalog.notFound.brandDescription")}
         action={
           <Button nativeButton={false} render={<Link href="/products" />}>
-            Browse all products
+            {copy("catalog.collection.allProducts")}
           </Button>
         }
       />

@@ -36,6 +36,11 @@ export const ADMIN_NAV_LINKS: AdminNavLink[] = [
     permission: "consultations.read",
   },
   { href: "/admin/customers", label: "Customers", permission: "users.manage" },
+  {
+    href: "/admin/content",
+    label: "Website copy",
+    permission: "settings.manage",
+  },
 ];
 
 export function visibleAdminNavLinks(

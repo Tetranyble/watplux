@@ -16,6 +16,7 @@ import { ProductGrid } from "@/components/storefront/product-grid";
 import { Button } from "@/components/ui/button";
 import { env } from "@/lib/env";
 import type { ListProductsInput } from "@/src/modules/catalog/schema";
+import { copyValue, getSiteCopy, interpolateCopy } from "@/app/_data/site-copy";
 
 export async function generateMetadata({
   searchParams,
@@ -23,6 +24,7 @@ export async function generateMetadata({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const params = await searchParams;
+  const copy = await getSiteCopy();
   const hasDiscoveryParams = Object.entries(params).some(
     ([key, value]) =>
       key !== "cursor" &&
@@ -30,8 +32,8 @@ export async function generateMetadata({
       (Array.isArray(value) ? value.some(Boolean) : value !== ""),
   );
   return {
-    title: "Shop",
-    description: "Browse solar panels, inverters, batteries, and accessories.",
+    title: copyValue(copy, "catalog.metaTitle"),
+    description: copyValue(copy, "catalog.metaDescription"),
     alternates: { canonical: `${env.APP_BASE_URL}/products` },
     // Faceted/search result URLs are useful for customers but should not
     // compete with dedicated product/category/brand landing pages in the
@@ -63,6 +65,13 @@ export default async function ProductsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const rawParams = await searchParams;
+  const copy = await getSiteCopy();
+  const c = (key: string) => copyValue(copy, key);
+  const productsShown = (count: number, plus: boolean) =>
+    interpolateCopy(c("catalog.productsShown"), {
+      count,
+      plus: plus ? "+" : "",
+    });
   const get = (key: string): string | undefined => {
     const value = rawParams[key];
     return Array.isArray(value) ? value[0] : value;
@@ -165,16 +174,14 @@ export default async function ProductsPage({
       <header className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">
-            Shop dependable power solutions
+            {c("catalog.title")}
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Compare panels, inverters, batteries and accessories selected for
-            homes, businesses and backup-energy projects.
+            {c("catalog.description")}
           </p>
           {page.items.length > 0 ? (
             <p className="mt-1 text-sm text-muted-foreground md:hidden">
-              {page.items.length}
-              {page.nextCursor ? "+" : ""} products shown
+              {productsShown(page.items.length, Boolean(page.nextCursor))}
             </p>
           ) : null}
         </div>
@@ -194,12 +201,14 @@ export default async function ProductsPage({
           />
         </aside>
 
-        <section className="flex min-w-0 flex-col" aria-label="Product results">
+        <section
+          className="flex min-w-0 flex-col"
+          aria-label={c("catalog.resultsAria")}
+        >
           {page.items.length > 0 ? (
             <div className="mb-4 hidden min-h-8 items-center justify-between gap-4 md:flex">
               <p className="text-sm text-muted-foreground">
-                {page.items.length}
-                {page.nextCursor ? "+" : ""} products shown
+                {productsShown(page.items.length, Boolean(page.nextCursor))}
               </p>
               {hasFilters ? (
                 <Button
@@ -208,7 +217,7 @@ export default async function ProductsPage({
                   nativeButton={false}
                   render={<Link href="/products" />}
                 >
-                  Clear all filters
+                  {c("catalog.clearAll")}
                 </Button>
               ) : null}
             </div>
@@ -219,13 +228,13 @@ export default async function ProductsPage({
             emptyIcon={hasFilters ? SearchX : PackageOpen}
             emptyTitle={
               hasFilters
-                ? "No matching products"
-                : "Our catalog is being prepared"
+                ? c("catalog.empty.filteredTitle")
+                : c("catalog.empty.catalogTitle")
             }
             emptyMessage={
               hasFilters
-                ? "No products match the selected filters. Adjust or clear them to explore more equipment."
-                : "We’re preparing products for online purchase. Our team can still help you choose the right equipment for your project."
+                ? c("catalog.empty.filteredDescription")
+                : c("catalog.empty.catalogDescription")
             }
             emptyAction={
               <Button
@@ -235,7 +244,9 @@ export default async function ProductsPage({
                   <Link href={hasFilters ? "/products" : "/consultation"} />
                 }
               >
-                {hasFilters ? "Clear filters" : "Get product advice"}
+                {hasFilters
+                  ? c("catalog.empty.clear")
+                  : c("catalog.empty.advice")}
               </Button>
             }
           />
@@ -248,7 +259,7 @@ export default async function ProductsPage({
                   <Link href={`/products?${nextPageParams.toString()}`} />
                 }
               >
-                View more products
+                {c("catalog.viewMore")}
               </Button>
             </div>
           ) : null}

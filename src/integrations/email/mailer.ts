@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import { Message, SMTPClient } from "emailjs";
 
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
@@ -10,29 +10,28 @@ export interface TransactionalEmail {
   html: string;
 }
 
-let transporter: ReturnType<typeof nodemailer.createTransport> | undefined;
-
-function getTransporter() {
-  if (transporter) return transporter;
+function getClient() {
   if (!env.MAIL_HOST || !env.MAIL_FROM_ADDRESS) {
     throw new Error(
       "MAIL_HOST and MAIL_FROM_ADDRESS are required for SMTP delivery.",
     );
   }
 
-  transporter = nodemailer.createTransport({
+  return new SMTPClient({
     host: env.MAIL_HOST,
     port: env.MAIL_PORT,
-    secure: env.MAIL_SCHEME === "ssl" || env.MAIL_PORT === 465,
-    requireTLS: env.MAIL_SCHEME === "tls",
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 15_000,
-    auth: env.MAIL_USERNAME
-      ? { user: env.MAIL_USERNAME, pass: env.MAIL_PASSWORD }
-      : undefined,
+    ssl: env.MAIL_SCHEME === "ssl" || env.MAIL_PORT === 465,
+    tls: env.MAIL_SCHEME === "tls" && env.MAIL_PORT !== 465,
+    timeout: 15_000,
+    ...(env.MAIL_USERNAME
+      ? { user: env.MAIL_USERNAME, password: env.MAIL_PASSWORD }
+      : {}),
   });
-  return transporter;
+}
+
+function mailbox(name: string, address: string): string {
+  const safeName = name.replace(/["\r\n]/g, "").trim();
+  return safeName ? `"${safeName}" <${address}>` : address;
 }
 
 export async function sendTransactionalEmail(
@@ -50,14 +49,25 @@ export async function sendTransactionalEmail(
     throw new Error("MAIL_FROM_ADDRESS is required for SMTP delivery.");
   }
 
-  await getTransporter().sendMail({
-    from: {
-      address: env.MAIL_FROM_ADDRESS,
-      name: env.MAIL_FROM_NAME,
-    },
+  const client = getClient();
+  const email = new Message({
+    from: mailbox(env.MAIL_FROM_NAME, env.MAIL_FROM_ADDRESS),
     to: message.to,
     subject: message.subject,
     text: message.text,
-    html: message.html,
+    attachment: [
+      {
+        data: message.html,
+        alternative: true,
+        type: "text/html",
+        charset: "utf-8",
+      },
+    ],
   });
+
+  try {
+    await client.sendAsync(email);
+  } finally {
+    client.smtp.close();
+  }
 }

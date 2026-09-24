@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
 
 import { PriceDisplay } from "@/components/storefront/price-display";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
+import { interpolateCopy } from "@/src/modules/site-copy/copy";
 
 export function CartSummary({
   itemCount,
@@ -20,6 +24,7 @@ export function CartSummary({
   variant?: "default" | "drawer";
   onCheckout?: () => void;
 }) {
+  const copy = useSiteCopy();
   return (
     <aside
       className={cn(
@@ -29,13 +34,24 @@ export function CartSummary({
       )}
     >
       <div>
-        <p className="text-sm font-semibold">Order summary</p>
+        <p className="text-sm font-semibold">
+          {copy("commerce.summary.title")}
+        </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {itemCount} item{itemCount === 1 ? "" : "s"} in this order
+          {interpolateCopy(copy("commerce.summary.items"), {
+            count: itemCount,
+            itemLabel: copy(
+              itemCount === 1
+                ? "commerce.cart.itemSingular"
+                : "commerce.cart.itemPlural",
+            ),
+          })}
         </p>
       </div>
       <div className="flex items-center justify-between border-y py-4 text-sm">
-        <span className="text-muted-foreground">Subtotal</span>
+        <span className="text-muted-foreground">
+          {copy("commerce.summary.subtotal")}
+        </span>
         <PriceDisplay
           priceMinor={subtotalDisplayMinor}
           compareAtPriceMinor={null}
@@ -44,10 +60,7 @@ export function CartSummary({
       </div>
       <div className="flex gap-2 text-xs leading-5 text-muted-foreground">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary-emphasis" />
-        <p>
-          Your final order total is confirmed before you continue to secure
-          payment.
-        </p>
+        <p>{copy("commerce.summary.note")}</p>
       </div>
       {showCheckoutButton ? (
         <Button
@@ -55,7 +68,7 @@ export function CartSummary({
           nativeButton={false}
           render={<Link href={checkoutHref} onClick={onCheckout} />}
         >
-          Proceed to checkout
+          {copy("commerce.summary.checkout")}
         </Button>
       ) : null}
     </aside>

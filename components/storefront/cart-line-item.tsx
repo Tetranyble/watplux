@@ -8,6 +8,8 @@ import { PriceDisplay } from "@/components/storefront/price-display";
 import { Button } from "@/components/ui/button";
 import { formatQuantity } from "@/lib/format";
 import type { CartItemRecord } from "@/src/modules/cart/types";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
+import { interpolateCopy } from "@/src/modules/site-copy/copy";
 
 /**
  * A real cart line — quantity update/remove go straight to the existing
@@ -22,6 +24,7 @@ export function CartLineItem({
   item: CartItemRecord;
   onChanged: () => void;
 }) {
+  const copy = useSiteCopy();
   const [isPending, startTransition] = useTransition();
 
   function updateQuantity(nextQuantity: number) {
@@ -34,7 +37,7 @@ export function CartLineItem({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        toast.error(body?.error ?? "Could not update this item.");
+        toast.error(body?.error ?? copy("commerce.cart.updateFailed"));
         return;
       }
       onChanged();
@@ -48,7 +51,7 @@ export function CartLineItem({
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
-        toast.error(body?.error ?? "Could not remove this item.");
+        toast.error(body?.error ?? copy("commerce.cart.removeFailed"));
         return;
       }
       onChanged();
@@ -63,7 +66,9 @@ export function CartLineItem({
           <p className="text-xs text-muted-foreground">{item.variantLabel}</p>
         ) : null}
         {!item.isVariantActive ? (
-          <p className="text-xs text-destructive">No longer available</p>
+          <p className="text-xs text-destructive">
+            {copy("commerce.cart.unavailable")}
+          </p>
         ) : null}
         <div className="mt-2 flex items-center gap-3">
           <div className="flex items-center rounded-md border">
@@ -71,7 +76,7 @@ export function CartLineItem({
               type="button"
               variant="ghost"
               size="icon-xs"
-              aria-label="Decrease quantity"
+              aria-label={copy("commerce.cart.decrease")}
               disabled={isPending}
               onClick={() => updateQuantity(item.quantity - 1)}
             >
@@ -84,7 +89,7 @@ export function CartLineItem({
               type="button"
               variant="ghost"
               size="icon-xs"
-              aria-label="Increase quantity"
+              aria-label={copy("commerce.cart.increase")}
               disabled={isPending}
               onClick={() => updateQuantity(item.quantity + 1)}
             >
@@ -95,7 +100,9 @@ export function CartLineItem({
             type="button"
             variant="ghost"
             size="icon-xs"
-            aria-label={`Remove ${item.productName} from cart`}
+            aria-label={interpolateCopy(copy("commerce.cart.remove"), {
+              product: item.productName,
+            })}
             disabled={isPending}
             onClick={removeItem}
           >

@@ -13,8 +13,10 @@ import {
   resendVerificationSchema,
   type ResendVerificationInput,
 } from "@/src/modules/auth/schema";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export function ResendVerificationForm() {
+  const copy = useSiteCopy();
   const [isPending, startTransition] = useTransition();
   const {
     control,
@@ -34,15 +36,14 @@ export function ResendVerificationForm() {
       formData.set("email", values.email);
       const result = await resendVerificationFormAction({}, formData);
       if (result.error) {
-        toast.error("Could not resend verification", {
+        toast.error(copy("auth.verify.errorTitle"), {
           description: result.error,
         });
         return;
       }
       reset({ email: "" });
-      toast.success("Verification link requested", {
-        description:
-          "If that address is awaiting verification, a fresh link is on its way.",
+      toast.success(copy("auth.verify.successTitle"), {
+        description: copy("auth.verify.successDescription"),
       });
     });
   });
@@ -52,21 +53,21 @@ export function ResendVerificationForm() {
       <ControlledInput
         control={control}
         name="email"
-        label="Email address"
+        label={copy("auth.emailLabel")}
         type="email"
         autoComplete="email"
-        placeholder="you@example.com"
+        placeholder={copy("auth.emailPlaceholder")}
         required
       />
       <Button type="submit" disabled={isPending || !isValid}>
-        {isPending ? "Sending…" : "Resend verification email"}
+        {isPending ? copy("auth.verify.sending") : copy("auth.verify.submit")}
       </Button>
       <Button
         variant="ghost"
         nativeButton={false}
         render={<Link href="/login" />}
       >
-        Back to sign in
+        {copy("auth.backToSignIn")}
       </Button>
     </form>
   );

@@ -5,12 +5,14 @@ import { useState, useTransition } from "react";
 import { toast } from "@/components/ui/toast";
 
 import { Button } from "@/components/ui/button";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 /** Cancel/retry both call the existing, unmodified order/payment routes —
  * ownership/permission enforcement happens server-side regardless of
  * whether these buttons are shown (docs/PHASE_9_STOREFRONT_PLAN.md §12/§21:
  * "Do not rely on UI hiding as authorization"). */
 export function OrderActions({ orderId }: { orderId: string }) {
+  const copy = useSiteCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmingCancel, setConfirmingCancel] = useState(false);
@@ -24,10 +26,10 @@ export function OrderActions({ orderId }: { orderId: string }) {
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
-        toast.error(body?.error ?? "Could not cancel this order.");
+        toast.error(body?.error ?? copy("commerce.order.cancelFailed"));
         return;
       }
-      toast.success("Order cancelled.");
+      toast.success(copy("commerce.order.cancelled"));
       setConfirmingCancel(false);
       router.refresh();
     });
@@ -42,7 +44,7 @@ export function OrderActions({ orderId }: { orderId: string }) {
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
-        toast.error(body?.error ?? "Could not retry payment.");
+        toast.error(body?.error ?? copy("commerce.order.retryFailed"));
         return;
       }
       if (body.payment?.outcome === "PENDING") {
@@ -56,7 +58,7 @@ export function OrderActions({ orderId }: { orderId: string }) {
   return (
     <div className="flex flex-wrap gap-3">
       <Button onClick={handleRetryPayment} disabled={isPending}>
-        Retry payment
+        {copy("commerce.order.retry")}
       </Button>
       {confirmingCancel ? (
         <>
@@ -65,14 +67,14 @@ export function OrderActions({ orderId }: { orderId: string }) {
             onClick={handleCancel}
             disabled={isPending}
           >
-            Confirm cancellation
+            {copy("commerce.order.confirmCancel")}
           </Button>
           <Button
             variant="ghost"
             onClick={() => setConfirmingCancel(false)}
             disabled={isPending}
           >
-            Never mind
+            {copy("commerce.order.neverMind")}
           </Button>
         </>
       ) : (
@@ -81,7 +83,7 @@ export function OrderActions({ orderId }: { orderId: string }) {
           onClick={() => setConfirmingCancel(true)}
           disabled={isPending}
         >
-          Cancel order
+          {copy("commerce.order.cancel")}
         </Button>
       )}
     </div>

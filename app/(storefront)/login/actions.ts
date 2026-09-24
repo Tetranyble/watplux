@@ -10,6 +10,7 @@ import { getSessionUser } from "@/lib/session";
 import { safeInternalPath } from "@/lib/request-security";
 import { loginSchema } from "@/src/modules/auth/schema";
 import { mergeGuestCartTokenIntoUserCart } from "@/src/modules/cart/use-cases/merge-guest-cart-into-user-cart";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
 export interface LoginFormState {
   error?: string;
@@ -19,12 +20,13 @@ export async function loginFormAction(
   _prevState: LoginFormState,
   formData: FormData,
 ): Promise<LoginFormState> {
+  const copy = await getSiteCopy();
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
   if (!parsed.success) {
-    return { error: "Enter a valid email and password." };
+    return { error: copyValue(copy, "auth.login.invalid") };
   }
 
   try {
@@ -55,12 +57,11 @@ export async function loginFormAction(
       error.body?.code === "EMAIL_NOT_VERIFIED"
     ) {
       return {
-        error:
-          "Verify your email before signing in. We sent a fresh verification link.",
+        error: copyValue(copy, "auth.login.verify"),
       };
     }
     // Keep authentication failure intentionally generic.
-    return { error: "Invalid email or password." };
+    return { error: copyValue(copy, "auth.login.credentials") };
   }
 
   redirect(safeInternalPath(formData.get("next"), "/account"));

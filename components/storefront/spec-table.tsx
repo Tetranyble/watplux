@@ -1,31 +1,15 @@
+"use client";
+
 import type {
   CatalogSpecification,
   CatalogVariant,
 } from "@/src/modules/catalog/types";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 /** One row of the typed solar/logistics facet columns already on
  * `ProductVariant` (docs/PHASE_9_STOREFRONT_PLAN.md §4/§10) — never a
  * second solar-specification model; this is purely a display mapping
  * over the columns the catalog module already returns. */
-const FACET_ROWS: {
-  key: keyof CatalogVariant;
-  label: string;
-  unit?: string;
-}[] = [
-  { key: "powerRatingW", label: "Power rating", unit: "W" },
-  { key: "voltageV", label: "Voltage", unit: "V" },
-  { key: "capacityWh", label: "Capacity", unit: "Wh" },
-  { key: "ratedCurrentA", label: "Rated current", unit: "A" },
-  { key: "phase", label: "Phase" },
-  { key: "efficiencyPercent", label: "Efficiency", unit: "%" },
-  { key: "mpptMinV", label: "MPPT min voltage", unit: "V" },
-  { key: "mpptMaxV", label: "MPPT max voltage", unit: "V" },
-  { key: "weightKg", label: "Weight", unit: "kg" },
-  { key: "lengthCm", label: "Length", unit: "cm" },
-  { key: "widthCm", label: "Width", unit: "cm" },
-  { key: "heightCm", label: "Height", unit: "cm" },
-];
-
 export function SpecTable({
   variant,
   specifications,
@@ -33,11 +17,38 @@ export function SpecTable({
   variant: CatalogVariant;
   specifications: CatalogSpecification[];
 }) {
-  const facetRows = FACET_ROWS.filter((row) => variant[row.key] !== null);
+  const copy = useSiteCopy();
+  const facetDefinitions: {
+    key: keyof CatalogVariant;
+    label: string;
+    unit?: string;
+  }[] = [
+    {
+      key: "powerRatingW",
+      label: copy("catalog.specs.powerRating"),
+      unit: "W",
+    },
+    { key: "voltageV", label: copy("catalog.specs.voltage"), unit: "V" },
+    { key: "capacityWh", label: copy("catalog.specs.capacity"), unit: "Wh" },
+    { key: "ratedCurrentA", label: copy("catalog.specs.current"), unit: "A" },
+    { key: "phase", label: copy("catalog.specs.phase") },
+    {
+      key: "efficiencyPercent",
+      label: copy("catalog.specs.efficiency"),
+      unit: "%",
+    },
+    { key: "mpptMinV", label: copy("catalog.specs.mpptMin"), unit: "V" },
+    { key: "mpptMaxV", label: copy("catalog.specs.mpptMax"), unit: "V" },
+    { key: "weightKg", label: copy("catalog.specs.weight"), unit: "kg" },
+    { key: "lengthCm", label: copy("catalog.specs.length"), unit: "cm" },
+    { key: "widthCm", label: copy("catalog.specs.width"), unit: "cm" },
+    { key: "heightCm", label: copy("catalog.specs.height"), unit: "cm" },
+  ];
+  const facetRows = facetDefinitions.filter((row) => variant[row.key] !== null);
 
   const groups = new Map<string, CatalogSpecification[]>();
   for (const spec of specifications) {
-    const group = spec.groupLabel ?? "Other specifications";
+    const group = spec.groupLabel ?? copy("catalog.specs.other");
     if (!groups.has(group)) groups.set(group, []);
     groups.get(group)!.push(spec);
   }
@@ -51,7 +62,7 @@ export function SpecTable({
       {facetRows.length > 0 ? (
         <div>
           <h2 className="mb-2 text-sm font-semibold">
-            Technical specifications
+            {copy("catalog.specs.technical")}
           </h2>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
             {facetRows.map((row) => (

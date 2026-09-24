@@ -21,10 +21,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { addressInputSchema } from "@/src/modules/checkout/schema";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 const emptyToUndefined = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
-function formSchema(isAuthenticated: boolean) {
+function formSchema(isAuthenticated: boolean, copy: (key: string) => string) {
   return addressInputSchema
     .extend({
       guestEmail: z.preprocess(
@@ -32,7 +33,7 @@ function formSchema(isAuthenticated: boolean) {
         z
           .string()
           .trim()
-          .email("Enter a valid email address.")
+          .email(copy("commerce.checkout.invalidEmail"))
           .max(255)
           .optional(),
       ),
@@ -46,7 +47,7 @@ function formSchema(isAuthenticated: boolean) {
         ctx.addIssue({
           code: "custom",
           path: ["guestEmail"],
-          message: "Email is required for guest checkout.",
+          message: copy("commerce.checkout.emailRequired"),
         });
     });
 }
@@ -58,9 +59,13 @@ export function CheckoutAddressForm({
 }: {
   isAuthenticated: boolean;
 }) {
+  const copy = useSiteCopy();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const schema = useMemo(() => formSchema(isAuthenticated), [isAuthenticated]);
+  const schema = useMemo(
+    () => formSchema(isAuthenticated, copy),
+    [isAuthenticated, copy],
+  );
   const {
     control,
     handleSubmit,
@@ -108,9 +113,8 @@ export function CheckoutAddressForm({
         });
         const body = await response.json();
         if (!response.ok) {
-          toast.error("Could not continue to payment", {
-            description:
-              body?.error ?? "Please check your details and try again.",
+          toast.error(copy("commerce.checkout.continueError"), {
+            description: body?.error ?? copy("commerce.checkout.checkDetails"),
           });
           return;
         }
@@ -131,8 +135,8 @@ export function CheckoutAddressForm({
             : `/checkout/payment-result?orderId=${order.id}`,
         );
       } catch {
-        toast.error("Checkout failed", {
-          description: "Something went wrong. Please try again.",
+        toast.error(copy("commerce.checkout.failed"), {
+          description: copy("commerce.checkout.generalError"),
         });
       }
     });
@@ -143,16 +147,16 @@ export function CheckoutAddressForm({
       {!isAuthenticated ? (
         <Card>
           <CardHeader>
-            <CardTitle>Contact</CardTitle>
+            <CardTitle>{copy("commerce.checkout.contact")}</CardTitle>
             <CardDescription>
-              We use these details for your order and payment confirmation.
+              {copy("commerce.checkout.contactDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
             <ControlledInput
               control={control}
               name="guestEmail"
-              label="Email"
+              label={copy("commerce.checkout.email")}
               type="email"
               autoComplete="email"
               required
@@ -160,26 +164,26 @@ export function CheckoutAddressForm({
             <ControlledInput
               control={control}
               name="guestPhone"
-              label="Phone"
+              label={copy("commerce.checkout.phone")}
               type="tel"
               autoComplete="tel"
-              description="Optional, but useful for delivery updates."
+              description={copy("commerce.checkout.phoneHelp")}
             />
           </CardContent>
         </Card>
       ) : null}
       <Card>
         <CardHeader>
-          <CardTitle>Delivery details</CardTitle>
+          <CardTitle>{copy("commerce.checkout.delivery")}</CardTitle>
           <CardDescription>
-            Enter the address where this order should be delivered.
+            {copy("commerce.checkout.deliveryDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <ControlledInput
             control={control}
             name="fullName"
-            label="Full name"
+            label={copy("commerce.checkout.fullName")}
             autoComplete="name"
             required
             className="sm:col-span-2"
@@ -187,7 +191,7 @@ export function CheckoutAddressForm({
           <ControlledInput
             control={control}
             name="phone"
-            label="Phone"
+            label={copy("commerce.checkout.phone")}
             type="tel"
             autoComplete="tel"
             required
@@ -196,7 +200,7 @@ export function CheckoutAddressForm({
           <ControlledInput
             control={control}
             name="addressLine1"
-            label="Address"
+            label={copy("commerce.checkout.address")}
             autoComplete="address-line1"
             required
             className="sm:col-span-2"
@@ -204,46 +208,47 @@ export function CheckoutAddressForm({
           <ControlledInput
             control={control}
             name="addressLine2"
-            label="Address line 2"
+            label={copy("commerce.checkout.address2")}
             autoComplete="address-line2"
             className="sm:col-span-2"
           />
           <ControlledInput
             control={control}
             name="city"
-            label="City"
+            label={copy("commerce.checkout.city")}
             autoComplete="address-level2"
             required
           />
           <ControlledInput
             control={control}
             name="state"
-            label="State"
+            label={copy("commerce.checkout.state")}
             autoComplete="address-level1"
             required
           />
           <ControlledInput
             control={control}
             name="postalCode"
-            label="Postal code"
+            label={copy("commerce.checkout.postal")}
             autoComplete="postal-code"
           />
           <ControlledTextarea
             control={control}
             name="deliveryNotes"
-            label="Delivery notes"
+            label={copy("commerce.checkout.notes")}
             rows={3}
             className="sm:col-span-2"
           />
         </CardContent>
       </Card>
       <Button type="submit" size="lg" disabled={isPending || !isValid}>
-        {isPending ? "Preparing secure payment…" : "Continue to secure payment"}
+        {isPending
+          ? copy("commerce.checkout.preparing")
+          : copy("commerce.checkout.continue")}
       </Button>
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <LockKeyhole className="size-3.5" />
-        Payment is processed securely through Paystack. Watplux never receives
-        your card details.
+        {copy("commerce.checkout.security")}
       </div>
     </form>
   );

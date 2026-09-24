@@ -5,6 +5,8 @@ import { useState } from "react";
 import { ProductImage } from "@/components/storefront/product-image";
 import { Button } from "@/components/ui/button";
 import type { CatalogImage } from "@/src/modules/catalog/types";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
+import { interpolateCopy } from "@/src/modules/site-copy/copy";
 
 /** Client only because thumbnail selection is genuinely interactive state
  * — the images themselves were already fetched server-side. */
@@ -15,13 +17,14 @@ export function ProductGallery({
   images: CatalogImage[];
   productName: string;
 }) {
+  const copy = useSiteCopy();
   const [activeIndex, setActiveIndex] = useState(0);
   const active = images[activeIndex];
 
   if (!active) {
     return (
       <div className="flex aspect-square items-center justify-center rounded-lg bg-muted text-sm text-muted-foreground">
-        No image available
+        {copy("catalog.gallery.noImage")}
       </div>
     );
   }
@@ -42,7 +45,7 @@ export function ProductGallery({
         <div
           className="flex gap-2 overflow-x-auto"
           role="tablist"
-          aria-label="Product images"
+          aria-label={copy("catalog.gallery.aria")}
         >
           {images.map((image, index) => (
             <Button
@@ -51,7 +54,10 @@ export function ProductGallery({
               variant="outline"
               role="tab"
               aria-selected={index === activeIndex}
-              aria-label={`View image ${index + 1} of ${images.length}`}
+              aria-label={interpolateCopy(copy("catalog.gallery.viewImage"), {
+                index: index + 1,
+                count: images.length,
+              })}
               onClick={() => setActiveIndex(index)}
               className={`relative size-16 shrink-0 overflow-hidden p-0 ${
                 index === activeIndex

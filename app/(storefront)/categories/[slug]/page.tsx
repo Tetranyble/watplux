@@ -11,6 +11,7 @@ import { ProductGrid } from "@/components/storefront/product-grid";
 import { Button } from "@/components/ui/button";
 import { env } from "@/lib/env";
 import { isNotFoundError } from "@/lib/errors";
+import { copyValue, getSiteCopy, interpolateCopy } from "@/app/_data/site-copy";
 
 // See app/products/[slug]/page.tsx for why this is `false` (no
 // `generateStaticParams`, per-request slug lookup, matches the existing
@@ -54,6 +55,8 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const copy = await getSiteCopy();
+  const c = (key: string) => copyValue(copy, key);
   const category = await loadCategory(slug);
   if (!category) {
     notFound();
@@ -67,7 +70,7 @@ export default async function CategoryPage({
 
   return (
     <div className="page-shell flex flex-1 flex-col py-10 sm:py-12 lg:py-14">
-      <p className="eyebrow">Product category</p>
+      <p className="eyebrow">{c("catalog.category.eyebrow")}</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">
         {category.name}
       </h1>
@@ -80,8 +83,10 @@ export default async function CategoryPage({
         <ProductGrid
           products={page.items}
           emptyIcon={Boxes}
-          emptyTitle={`No ${category.name} products yet`}
-          emptyMessage="We’re still preparing this collection. Browse the full catalog or speak with our team for help finding the right equipment."
+          emptyTitle={interpolateCopy(c("catalog.category.emptyTitle"), {
+            category: category.name,
+          })}
+          emptyMessage={c("catalog.category.emptyDescription")}
           emptyAction={
             <div className="flex flex-col-reverse gap-2 sm:flex-row">
               <Button
@@ -89,10 +94,10 @@ export default async function CategoryPage({
                 nativeButton={false}
                 render={<Link href="/consultation" />}
               >
-                Get product advice
+                {c("catalog.collection.advice")}
               </Button>
               <Button nativeButton={false} render={<Link href="/products" />}>
-                Browse all products
+                {c("catalog.collection.allProducts")}
               </Button>
             </div>
           }

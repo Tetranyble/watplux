@@ -18,7 +18,7 @@
 
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-1.1.x", "rhel-openssl-3.0.x"]
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-1.1.x", "rhel-openssl-3.0.x", "debian-openssl-1.0.x"]
 }
 
 datasource db {
@@ -69,6 +69,7 @@ model User {
   auditLogsActed            AuditLog[]
   settingsUpdated           Settings[]           @relation("SettingsUpdatedBy")
   settingEntriesUpdated     SettingEntry[]       @relation("SettingEntriesUpdatedBy")
+  siteCopyUpdated           SiteCopy[]           @relation("SiteCopyUpdatedBy")
   mediaAssetsCreated        MediaAsset[]         @relation("MediaAssetCreatedBy")
 
   @@map("users")
@@ -1064,4 +1065,24 @@ model SettingEntry {
   updatedByUser User? @relation("SettingEntriesUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
 
   @@map("setting_entries")
+}
+
+/// Visitor-facing website copy. Application structure and behavior stay in
+/// source control; every word rendered to a storefront visitor is addressed
+/// by a stable key and edited independently through the admin workspace.
+model SiteCopy {
+  key         String   @id @db.VarChar(191)
+  namespace   String   @db.VarChar(100)
+  label       String   @db.VarChar(150)
+  value       String   @db.Text
+  description String?  @db.VarChar(500)
+  multiline   Boolean  @default(false)
+  sortOrder   Int      @default(0) @map("sort_order") @db.UnsignedInt
+  updatedBy   BigInt?  @map("updated_by") @db.UnsignedBigInt
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  updatedByUser User? @relation("SiteCopyUpdatedBy", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([namespace, sortOrder], map: "idx_site_copy_namespace_order")
+  @@map("site_copy")
 }

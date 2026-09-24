@@ -2,13 +2,14 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 
-import { siteConfig } from "@/lib/site-config";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
-export const alt = "Watplux solar power equipment, planning and installation";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OpenGraphImage() {
+  const copy = await getSiteCopy();
+  const c = (key: string) => copyValue(copy, key);
   const logoData = await readFile(
     join(process.cwd(), "public/web-app-manifest-512x512.png"),
     "base64",
@@ -81,7 +82,7 @@ export default async function OpenGraphImage() {
               letterSpacing: -1,
             }}
           >
-            {siteConfig.name}
+            {c("site.name")}
           </div>
         </div>
 
@@ -96,7 +97,7 @@ export default async function OpenGraphImage() {
               letterSpacing: -3.5,
             }}
           >
-            Reliable energy starts with the right system.
+            {c("home.social.title")}
           </div>
           <div
             style={{
@@ -108,8 +109,7 @@ export default async function OpenGraphImage() {
               color: "#6f6758",
             }}
           >
-            Solar equipment, system planning and professional installation for
-            homes and businesses.
+            {c("home.social.description")}
           </div>
         </div>
       </div>

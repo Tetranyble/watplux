@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { getAuth } from "@/lib/auth";
 import { resetPasswordSchema } from "@/src/modules/auth/schema";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
 export interface ResetPasswordFormState {
   error?: string;
@@ -14,6 +15,7 @@ export async function resetPasswordFormAction(
   _previousState: ResetPasswordFormState,
   formData: FormData,
 ): Promise<ResetPasswordFormState> {
+  const copy = await getSiteCopy();
   const parsed = resetPasswordSchema.safeParse({
     token: formData.get("token"),
     newPassword: formData.get("newPassword"),
@@ -23,7 +25,7 @@ export async function resetPasswordFormAction(
     return {
       error:
         parsed.error.issues[0]?.message ??
-        "Check the password fields and try again.",
+        copyValue(copy, "auth.reset.invalid"),
     };
   }
 
@@ -37,8 +39,7 @@ export async function resetPasswordFormAction(
     });
   } catch {
     return {
-      error:
-        "This reset link is invalid or has expired. Request a new link and try again.",
+      error: copyValue(copy, "auth.reset.expired"),
     };
   }
 

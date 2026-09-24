@@ -12,8 +12,10 @@ import {
   resetPasswordSchema,
   type ResetPasswordInput,
 } from "@/src/modules/auth/schema";
+import { useSiteCopy } from "@/components/storefront/site-copy-provider";
 
 export function ResetPasswordForm({ token }: { token: string }) {
+  const copy = useSiteCopy();
   const [isPending, startTransition] = useTransition();
   const {
     control,
@@ -34,7 +36,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       formData.set("confirmPassword", values.confirmPassword);
       const result = await resetPasswordFormAction({}, formData);
       if (result?.error) {
-        toast.error("Could not reset password", {
+        toast.error(copy("auth.reset.errorTitle"), {
           description: result.error,
         });
       }
@@ -46,23 +48,23 @@ export function ResetPasswordForm({ token }: { token: string }) {
       <ControlledInput
         control={control}
         name="newPassword"
-        label="New password"
+        label={copy("auth.reset.newPassword")}
         type="password"
         autoComplete="new-password"
         required
         autoFocus
-        description="Use at least 10 characters and a strong mix of characters."
+        description={copy("auth.passwordHelp")}
       />
       <ControlledInput
         control={control}
         name="confirmPassword"
-        label="Confirm new password"
+        label={copy("auth.reset.confirmPassword")}
         type="password"
         autoComplete="new-password"
         required
       />
       <Button type="submit" size="lg" disabled={isPending || !isValid}>
-        {isPending ? "Updating password…" : "Update password"}
+        {isPending ? copy("auth.reset.updating") : copy("auth.reset.submit")}
       </Button>
     </form>
   );

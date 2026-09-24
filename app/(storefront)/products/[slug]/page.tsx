@@ -22,6 +22,7 @@ import { consultationCtaHref, installationCtaHref } from "@/lib/site-config";
 import { env } from "@/lib/env";
 import { isNotFoundError } from "@/lib/errors";
 import { getAvailableQuantity } from "@/src/modules/inventory/use-cases/get-available-quantity";
+import { copyValue, getSiteCopy } from "@/app/_data/site-copy";
 
 // No `generateStaticParams` — every slug is looked up per-request (the
 // cached `getCachedProductBySlug` call still avoids re-hitting the DB on
@@ -74,6 +75,8 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+  const copy = await getSiteCopy();
+  const c = (key: string) => copyValue(copy, key);
   const product = await loadProduct(slug);
   if (!product) {
     notFound();
@@ -134,7 +137,7 @@ export default async function ProductPage({
       {
         "@type": "ListItem",
         position: 1,
-        name: "Home",
+        name: c("catalog.detail.home"),
         item: `${env.APP_BASE_URL}/`,
       },
       {
@@ -174,7 +177,9 @@ export default async function ProductPage({
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/" />}>Home</BreadcrumbLink>
+            <BreadcrumbLink render={<Link href="/" />}>
+              {c("catalog.detail.home")}
+            </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -214,19 +219,19 @@ export default async function ProductPage({
           />
 
           <div className="flex flex-col gap-2 rounded-lg border p-4 text-sm">
-            <p className="font-medium">Need help choosing?</p>
+            <p className="font-medium">{c("catalog.detail.help")}</p>
             <div className="flex flex-wrap gap-3">
               <Link
                 href={consultationCtaHref}
                 className="text-primary-emphasis underline"
               >
-                Book a consultation
+                {c("catalog.detail.consultation")}
               </Link>
               <Link
                 href={installationCtaHref}
                 className="text-primary-emphasis underline"
               >
-                Request installation
+                {c("catalog.detail.installation")}
               </Link>
             </div>
           </div>
@@ -235,7 +240,9 @@ export default async function ProductPage({
 
       {product.description ? (
         <div className="mt-10 max-w-3xl">
-          <h2 className="mb-2 text-sm font-semibold">Description</h2>
+          <h2 className="mb-2 text-sm font-semibold">
+            {c("catalog.detail.description")}
+          </h2>
           <p className="whitespace-pre-line text-sm text-muted-foreground">
             {product.description}
           </p>
@@ -253,7 +260,9 @@ export default async function ProductPage({
 
       {relatedProducts.length > 0 ? (
         <div className="mt-12">
-          <h2 className="mb-4 text-lg font-semibold">Related products</h2>
+          <h2 className="mb-4 text-lg font-semibold">
+            {c("catalog.detail.related")}
+          </h2>
           <ProductGrid products={relatedProducts} />
         </div>
       ) : null}
